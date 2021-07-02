@@ -136,6 +136,13 @@ public class KaldbIndexer {
     kafkaWriter = KaldbKafkaWriter.fromConfig(logMessageWriterImpl, meterRegistry);
   }
 
+  public KaldbIndexer(ChunkManager<LogMessage> chunkManager, KaldbKafkaWriter kafkaWriter) {
+    checkNotNull(chunkManager, "Chunk manager can't be null");
+    checkNotNull(kafkaWriter, "KaldbKafkaWriter can't be null");
+    this.chunkManager = chunkManager;
+    this.kafkaWriter = kafkaWriter;
+  }
+
   public void start() {
     LOG.info("Starting indexing into Kaldb.");
     kafkaWriter.start();
