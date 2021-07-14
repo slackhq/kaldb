@@ -100,6 +100,7 @@ public class Kaldb {
           GrpcService.builder().addService(new KaldbQueryService()).enableUnframedRequests(true);
       sb.service(searchBuilder.build());
 
+
       final int serverPort = KaldbConfig.get().getQueryConfig().getServerPort();
       addManagementEndpoints(sb, serverPort);
 
