@@ -95,11 +95,9 @@ public class Kaldb {
     if (roles.contains(KaldbConfigs.NodeRole.QUERY)) {
       ServerBuilder sb = Server.builder();
 
-      // TODO Use a thread pool to serve requests
       GrpcServiceBuilder searchBuilder =
           GrpcService.builder().addService(new KaldbQueryService()).enableUnframedRequests(true);
       sb.service(searchBuilder.build());
-
 
       final int serverPort = KaldbConfig.get().getQueryConfig().getServerPort();
       addManagementEndpoints(sb, serverPort);

@@ -260,18 +260,6 @@
             <version>${http.core.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.spotify</groupId>
-            <artifactId>futures-extra</artifactId>
-            <version>4.2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.spotify</groupId>
-            <artifactId>completable-futures</artifactId>
-            <version>0.3.1</version>
-        </dependency>
-
         <!-- Protobuf dependency -->
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -400,6 +388,12 @@
             <groupId>com.spotify</groupId>
             <artifactId>completable-futures</artifactId>
             <version>0.3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.spotify</groupId>
+            <artifactId>futures-extra</artifactId>
+            <version>4.2.0</version>
         </dependency>
 
     </dependencies>

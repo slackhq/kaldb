@@ -254,7 +254,7 @@ public class SearchResultAggregatorImplTest {
 
     SearchResult<LogMessage> aggSearchResult =
         new SearchResultAggregatorImpl<>(searchQuery)
-            .aggregate(makeAsyncResults.java(searchResults))
+            .aggregate(makeAsyncResults(searchResults))
             .join();
 
     assertThat(aggSearchResult.tookMicros).isEqualTo(tookMs + 1);

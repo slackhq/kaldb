@@ -15,6 +15,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,28 +39,32 @@ public class KaldbLocalSearcher<T> extends KaldbServiceGrpc.KaldbServiceImplBase
   }
 
   public static SearchResult<LogMessage> fromSearchResultProto(
-      KaldbSearch.SearchResult protoSearchResult) throws IOException {
-    List<LogMessage> hits = new ArrayList<>(protoSearchResult.getHitsCount());
+      KaldbSearch.SearchResult protoSearchResult) {
+    try {
+      List<LogMessage> hits = new ArrayList<>(protoSearchResult.getHitsCount());
 
-    for (ByteString bytes : protoSearchResult.getHitsList().asByteStringList()) {
-      LogWireMessage hit = JsonUtil.read(bytes.toStringUtf8(), LogWireMessage.class);
-      LogMessage message = LogMessage.fromWireMessage(hit);
-      hits.add(message);
-    }
-    List<HistogramBucket> histogramBuckets = new ArrayList<>();
-    for (KaldbSearch.HistogramBucket protoBucket : protoSearchResult.getBucketsList()) {
-      histogramBuckets.add(new HistogramBucket(protoBucket.getLow(), protoBucket.getHigh()));
-    }
+      for (ByteString bytes : protoSearchResult.getHitsList().asByteStringList()) {
+        LogWireMessage hit = JsonUtil.read(bytes.toStringUtf8(), LogWireMessage.class);
+        LogMessage message = LogMessage.fromWireMessage(hit);
+        hits.add(message);
+      }
+      List<HistogramBucket> histogramBuckets = new ArrayList<>();
+      for (KaldbSearch.HistogramBucket protoBucket : protoSearchResult.getBucketsList()) {
+        histogramBuckets.add(new HistogramBucket(protoBucket.getLow(), protoBucket.getHigh()));
+      }
 
-    return new SearchResult<>(
-        hits,
-        protoSearchResult.getTookMicros(),
-        protoSearchResult.getTotalCount(),
-        histogramBuckets,
-        protoSearchResult.getFailedNodes(),
-        protoSearchResult.getTotalNodes(),
-        protoSearchResult.getTotalSnapshots(),
-        protoSearchResult.getSnapshotsWithReplicas());
+      return new SearchResult<>(
+          hits,
+          protoSearchResult.getTookMicros(),
+          protoSearchResult.getTotalCount(),
+          histogramBuckets,
+          protoSearchResult.getFailedNodes(),
+          protoSearchResult.getTotalNodes(),
+          protoSearchResult.getTotalSnapshots(),
+          protoSearchResult.getSnapshotsWithReplicas());
+    } catch (IOException e) {
+      return new SearchResult<>(null, 0, 0, null, 1, 1, 0, 0);
+    }
   }
 
   public static <T> CompletableFuture<KaldbSearch.SearchResult> toSearchResultProto(
