@@ -22,3 +22,14 @@ message SnapshotMetadata {
   // Kafka offset when this snapshot was taken for that partition.
   int64 maxOffset = 6;
 }
+
+message SearchMetadata {
+  // Name of search metadata
+  string name = 1;
+
+  // snapshot name
+  string snapshotName = 2;
+
+  // url
+  string url = 3;
+}
