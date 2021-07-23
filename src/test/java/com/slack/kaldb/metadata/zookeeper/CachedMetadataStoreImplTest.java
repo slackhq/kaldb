@@ -1,5 +1,6 @@
 package com.slack.kaldb.metadata.zookeeper;
 
+import static com.slack.kaldb.util.SnapshotUtil.makeSnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.awaitility.Awaitility.await;
@@ -71,10 +72,6 @@ public class CachedMetadataStoreImplTest {
     metadataStore.close();
     testingServer.close();
     meterRegistry.close();
-  }
-
-  private SnapshotMetadata makeSnapshot(String name) {
-    return new SnapshotMetadata(name, "/testPath_" + name, name + "snapshotId", 1, 100, 1, "1");
   }
 
   private CachedMetadataStore<SnapshotMetadata> makeCachedStore(
