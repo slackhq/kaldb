@@ -1,10 +1,12 @@
 package com.slack.kaldb.writer.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.with;
 
 import com.github.charithe.kafka.EphemeralKafkaBroker;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.slack.kaldb.testlib.TestKafkaServer;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -28,17 +30,15 @@ public class KaldbKafkaConsumerTest {
   // TODO: Add a test to make sure catchup is working as expected.
   private static final Logger LOG = LoggerFactory.getLogger(KaldbKafkaConsumerTest.class);
 
-  private static final String TEST_KAFKA_CLIENT_GROUP = "test_consumer_group";
-
   static class TestKaldbKafkaConsumer extends KaldbKafkaConsumer {
     private int recordCount = 0;
 
-    public TestKaldbKafkaConsumer(String kafkaBootStrapServers) {
+    public TestKaldbKafkaConsumer(String kafkaBootStrapServers, String testKafkaClientGroup) {
       super(
           TestKafkaServer.TEST_KAFKA_TOPIC,
           String.valueOf(TestKafkaServer.TEST_KAFKA_PARTITION),
           kafkaBootStrapServers,
-          TEST_KAFKA_CLIENT_GROUP,
+          testKafkaClientGroup,
           "true",
           "5000",
           "5000");
@@ -63,11 +63,14 @@ public class KaldbKafkaConsumerTest {
     @Before
     public void setUp() throws Exception {
       kafkaServer = new TestKafkaServer();
-      testConsumer = new TestKaldbKafkaConsumer(kafkaServer.getBroker().getBrokerList().get());
+      testConsumer =
+          new TestKaldbKafkaConsumer(kafkaServer.getBroker().getBrokerList().get(), "basic_tests");
     }
 
     @After
-    public void tearDown() throws ExecutionException, InterruptedException, TimeoutException {
+    public void tearDown()
+        throws ExecutionException, InterruptedException, TimeoutException, NoSuchFieldException,
+            IllegalAccessException, IOException {
       ListenableFuture<?> future = testConsumer.triggerShutdown();
       future.get(1, TimeUnit.SECONDS);
       assertThat(future.isDone()).isTrue();
@@ -101,11 +104,20 @@ public class KaldbKafkaConsumerTest {
     @Before
     public void setUp() throws Exception {
       kafkaServer = new TestKafkaServer();
-      testConsumer = new TestKaldbKafkaConsumer(kafkaServer.getBroker().getBrokerList().get());
+      testConsumer =
+          new TestKaldbKafkaConsumer(
+              kafkaServer.getBroker().getBrokerList().get(), "timeout_tests");
     }
 
     @After
-    public void tearDown() {}
+    public void tearDown() throws ExecutionException, InterruptedException, TimeoutException {
+      // KafkaConsumer.DEFAULT_CLOSE_TIMEOUT_MS is 30 * 1000, so wait that plus a little extra
+      with()
+          .pollInterval(1, TimeUnit.SECONDS)
+          .await()
+          .atMost(45, TimeUnit.SECONDS)
+          .until(() -> testConsumer.isShutdown());
+    }
 
     @Test(expected = TimeoutException.class)
     public void kafkaConsumerShutdownTimeout() throws Exception {

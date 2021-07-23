@@ -55,6 +55,7 @@ public class KaldbIndexerTest {
   @Rule public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   private ChunkManagerUtil<LogMessage> chunkManagerUtil;
+  private KaldbIndexer kaldbIndexer;
   private SimpleMeterRegistry metricsRegistry;
   private Server server;
   private TestKafkaServer kafkaServer;
@@ -70,14 +71,15 @@ public class KaldbIndexerTest {
   }
 
   @After
-  public void tearDown() throws IOException, ExecutionException, InterruptedException {
+  public void tearDown()
+      throws IOException, ExecutionException, InterruptedException, NoSuchFieldException,
+          IllegalAccessException {
     if (server != null) {
       server.stop().join();
     }
-    if (chunkManagerUtil != null) {
-      chunkManagerUtil.close();
+    if (kaldbIndexer != null) {
+      kaldbIndexer.close();
     }
-
     kafkaServer.close();
   }
 
@@ -128,19 +130,19 @@ public class KaldbIndexerTest {
     ServerBuilder sb = Server.builder();
     sb.http(kaldbCfg.getIndexerConfig().getServerPort());
     sb.service("/ping", (ctx, req) -> HttpResponse.of("pong!"));
-    KaldbIndexer indexer =
+    kaldbIndexer =
         new KaldbIndexer(
             chunkManager, KaldbIndexer.dataTransformerMap.get("api_log"), metricsRegistry);
     GrpcServiceBuilder searchBuilder =
         GrpcService.builder()
-            .addService(new KaldbLocalSearcher<>(indexer.getChunkManager()))
+            .addService(new KaldbLocalSearcher<>(kaldbIndexer.getChunkManager()))
             .enableUnframedRequests(true);
     server = sb.service(searchBuilder.build()).build();
 
     // wait at most 10 seconds to start before throwing an exception
     server.start().get(10, TimeUnit.SECONDS);
 
-    indexer.start();
+    kaldbIndexer.start();
     Thread.sleep(1000); // Wait for consumer start.
 
     // Produce messages to kafka, so the indexer can consume them.
@@ -171,7 +173,6 @@ public class KaldbIndexerTest {
     assertThat(searchResponse.getTotalSnapshots()).isEqualTo(1);
     assertThat(searchResponse.getSnapshotsWithReplicas()).isEqualTo(1);
 
-    // TODO: Close indexer cleanly.
     // TODO: delete expired data cleanly.
   }
 }

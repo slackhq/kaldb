@@ -35,7 +35,7 @@ public class KaldbQueryServiceTest {
 
   @ClassRule public static final S3MockRule S3_MOCK_RULE = S3MockRule.builder().silent().build();
   private static SimpleMeterRegistry indexerMetricsRegistry;
-  private static ChunkManagerUtil<LogMessage> chunkManagerUtil;
+  private static KaldbIndexer kaldbIndexer;
 
   private static KaldbServiceGrpc.KaldbServiceBlockingStub readServiceStub;
   private static Server indexingServer;
@@ -101,17 +101,18 @@ public class KaldbQueryServiceTest {
   private static Server newIndexingServer(KaldbConfigs.KaldbConfig kaldbConfig)
       throws InterruptedException {
     indexerMetricsRegistry = new SimpleMeterRegistry();
-    chunkManagerUtil =
+    ChunkManagerUtil<LogMessage> chunkManagerUtil =
         new ChunkManagerUtil<>(S3_MOCK_RULE, indexerMetricsRegistry, 10 * 1024 * 1024 * 1024L, 100);
-    KaldbIndexer indexer =
+    kaldbIndexer =
         new KaldbIndexer(
             chunkManagerUtil.chunkManager,
             KaldbIndexer.dataTransformerMap.get("api_log"),
             indexerMetricsRegistry);
-    indexer.start();
+    kaldbIndexer.start();
     Thread.sleep(1000); // Wait for consumer start.
 
-    KaldbLocalSearcher<LogMessage> service = new KaldbLocalSearcher<>(indexer.getChunkManager());
+    KaldbLocalSearcher<LogMessage> service =
+        new KaldbLocalSearcher<>(kaldbIndexer.getChunkManager());
 
     return Server.builder()
         .http(kaldbConfig.getIndexerConfig().getServerPort())
@@ -131,8 +132,8 @@ public class KaldbQueryServiceTest {
 
   @AfterClass
   public static void shutdownServer() throws Exception {
-    if (chunkManagerUtil != null) {
-      chunkManagerUtil.close();
+    if (kaldbIndexer != null) {
+      kaldbIndexer.close();
     }
     if (kafkaServer != null) {
       kafkaServer.close();

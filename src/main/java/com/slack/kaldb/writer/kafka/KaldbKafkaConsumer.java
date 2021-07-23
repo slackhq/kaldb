@@ -182,4 +182,8 @@ abstract class KaldbKafkaConsumer {
     stop = true;
     return kafkaConsumerFuture;
   }
+
+  public boolean isShutdown() {
+    return kafkaConsumerService.isShutdown();
+  }
 }
