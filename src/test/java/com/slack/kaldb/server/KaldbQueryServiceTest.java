@@ -25,7 +25,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -34,17 +33,23 @@ import org.junit.Test;
 public class KaldbQueryServiceTest {
 
   @ClassRule public static final S3MockRule S3_MOCK_RULE = S3MockRule.builder().silent().build();
-  private static SimpleMeterRegistry indexerMetricsRegistry;
-  private static ChunkManagerUtil<LogMessage> chunkManagerUtil;
+  private static SimpleMeterRegistry indexerMetricsRegistry1 = new SimpleMeterRegistry();
+  private static SimpleMeterRegistry indexerMetricsRegistry2 = new SimpleMeterRegistry();
 
-  private static KaldbServiceGrpc.KaldbServiceBlockingStub readServiceStub;
-  private static Server indexingServer;
+  private static ChunkManagerUtil<LogMessage> chunkManagerUtil1;
+  private static ChunkManagerUtil<LogMessage> chunkManagerUtil2;
+
+  private static KaldbServiceGrpc.KaldbServiceBlockingStub queryServiceStub;
+  private static Server indexingServer1;
+  private static Server indexingServer2;
   private static Server queryServer;
 
-  private static final String TEST_KAFKA_TOPIC = "test-topic";
+  private static final String TEST_KAFKA_TOPIC_1 = "test-topic-1";
+  private static final String TEST_KAFKA_TOPIC_2 = "test-topic-2";
 
   // Kafka producer creates only a partition 0 on first message. So, set the partition to 0 always.
-  private static final int TEST_KAFKA_PARTITION = 0;
+  private static final int TEST_KAFKA_PARTITION_1 = 0;
+  private static final int TEST_KAFKA_PARTITION_2 = 0;
 
   private static final String KALDB_TEST_CLIENT = "kaldb-test-client";
   private static final String TEST_S3_BUCKET = "test-s3-bucket";
@@ -54,76 +59,117 @@ public class KaldbQueryServiceTest {
   // TODO: This test is very similar to KaldbIndexerTest - explore a TestRule based setup
   public static void initialize() throws Exception {
     kafkaServer = new TestKafkaServer();
+
     EphemeralKafkaBroker broker = kafkaServer.getBroker();
     assertThat(broker.isRunning()).isTrue();
 
-    KaldbConfigs.KaldbConfig kaldbConfig =
+    KaldbConfigs.KaldbConfig kaldbConfig1 =
         KaldbConfigUtil.makeKaldbConfig(
             "localhost:" + broker.getKafkaPort().get(),
             0,
-            TEST_KAFKA_TOPIC,
-            TEST_KAFKA_PARTITION,
+            TEST_KAFKA_TOPIC_1,
+            TEST_KAFKA_PARTITION_1,
             KALDB_TEST_CLIENT,
             TEST_S3_BUCKET,
             8081);
-    KaldbConfig.initFromConfigObject(kaldbConfig);
 
-    indexingServer = newIndexingServer(kaldbConfig);
+    // Needed to set refresh/commit interval etc
+    // Will be same for both indexing servers
+    KaldbConfig.initFromConfigObject(kaldbConfig1);
 
-    // wait at most 10 seconds to start before throwing an exception
-    indexingServer.start().get(10, TimeUnit.SECONDS);
+    chunkManagerUtil1 =
+        new ChunkManagerUtil<>(
+            S3_MOCK_RULE, indexerMetricsRegistry1, 10 * 1024 * 1024 * 1024L, 100);
+    indexingServer1 =
+        newIndexingServer(chunkManagerUtil1, kaldbConfig1, indexerMetricsRegistry1, 0);
+    indexingServer1.start().join();
+
+    KaldbConfigs.KaldbConfig kaldbConfig2 =
+        KaldbConfigUtil.makeKaldbConfig(
+            "localhost:" + broker.getKafkaPort().get(),
+            0,
+            TEST_KAFKA_TOPIC_2,
+            TEST_KAFKA_PARTITION_2,
+            KALDB_TEST_CLIENT,
+            TEST_S3_BUCKET,
+            8081);
+
+    // Set it to the new config so that the new kafka writer picks up this config
+    KaldbConfig.initFromConfigObject(kaldbConfig2);
+    chunkManagerUtil2 =
+        new ChunkManagerUtil<>(
+            S3_MOCK_RULE, indexerMetricsRegistry2, 10 * 1024 * 1024 * 1024L, 100);
+    indexingServer2 =
+        newIndexingServer(chunkManagerUtil2, kaldbConfig2, indexerMetricsRegistry2, 3000);
+    indexingServer2.start().join();
 
     // Produce messages to kafka, so the indexer can consume them.
     final Instant startTime =
         LocalDateTime.of(2020, 10, 1, 10, 10, 0).atZone(ZoneOffset.UTC).toInstant();
-    produceMessagesToKafka(broker, startTime);
+    produceMessagesToKafka(broker, startTime, TEST_KAFKA_TOPIC_1, TEST_KAFKA_PARTITION_1);
     Thread.sleep(1000); // Wait for consumer to finish consumption and roll over chunk.
-    assertThat(getCount(MESSAGES_RECEIVED_COUNTER, indexerMetricsRegistry)).isEqualTo(100);
+    assertThat(getCount(MESSAGES_RECEIVED_COUNTER, indexerMetricsRegistry1)).isEqualTo(100);
 
-    // Don't respect the queryPort from the config - In case multiple tests run in parallel this
-    // gives us a better chance to avoid port collisions
-    queryServer = newQueryServer(kaldbConfig, (indexingServer.activeLocalPort() + 1));
+    // Produce messages to kafka, so the indexer can consume them.
+    final Instant startTime2 =
+        LocalDateTime.of(2020, 10, 1, 10, 10, 0).atZone(ZoneOffset.UTC).toInstant();
+    produceMessagesToKafka(broker, startTime2, TEST_KAFKA_TOPIC_2, TEST_KAFKA_PARTITION_2);
+    Thread.sleep(1000); // Wait for consumer to finish consumption and roll over chunk.
+    assertThat(getCount(MESSAGES_RECEIVED_COUNTER, indexerMetricsRegistry2)).isEqualTo(100);
 
-    // wait at most 10 seconds to start before throwing an exception
-    queryServer.start().get(10, TimeUnit.SECONDS);
+    queryServer = newQueryServer();
+    queryServer.start().join();
 
     // We want to query the indexing server
     List<String> servers = new ArrayList<>();
-    servers.add(String.format("gproto+http://127.0.0.1:%s/", indexingServer.activeLocalPort()));
+    servers.add(String.format("gproto+http://127.0.0.1:%s/", indexingServer1.activeLocalPort()));
+    servers.add(String.format("gproto+http://127.0.0.1:%s/", indexingServer2.activeLocalPort()));
     KaldbQueryService.servers = servers;
 
-    readServiceStub =
+    queryServiceStub =
         Clients.newClient(
-            String.format("gproto+http://127.0.0.1:%s/", indexingServer.activeLocalPort() + 1),
+            String.format("gproto+http://127.0.0.1:%s/", queryServer.activeLocalPort()),
             KaldbServiceGrpc.KaldbServiceBlockingStub.class);
   }
 
-  private static Server newIndexingServer(KaldbConfigs.KaldbConfig kaldbConfig)
+  private static Server newIndexingServer(
+      ChunkManagerUtil<LogMessage> chunkManagerUtil,
+      KaldbConfigs.KaldbConfig kaldbConfig,
+      SimpleMeterRegistry meterRegistry,
+      int waitForSearchMs)
       throws InterruptedException {
-    indexerMetricsRegistry = new SimpleMeterRegistry();
-    chunkManagerUtil =
-        new ChunkManagerUtil<>(S3_MOCK_RULE, indexerMetricsRegistry, 10 * 1024 * 1024 * 1024L, 100);
+
     KaldbIndexer indexer =
         new KaldbIndexer(
             chunkManagerUtil.chunkManager,
             KaldbIndexer.dataTransformerMap.get("api_log"),
-            indexerMetricsRegistry);
+            meterRegistry);
     indexer.start();
     Thread.sleep(1000); // Wait for consumer start.
 
     KaldbLocalSearcher<LogMessage> service = new KaldbLocalSearcher<>(indexer.getChunkManager());
-
-    return Server.builder()
-        .http(kaldbConfig.getIndexerConfig().getServerPort())
-        .verboseResponses(true)
-        .service(GrpcService.builder().addService(service).build())
-        .build();
+    if (waitForSearchMs > 0) {
+      KaldbTimeoutLocalSearcher wrapperService =
+          new KaldbTimeoutLocalSearcher(service, waitForSearchMs);
+      return Server.builder()
+          .http(kaldbConfig.getIndexerConfig().getServerPort())
+          .verboseResponses(true)
+          .service(GrpcService.builder().addService(wrapperService).build())
+          .build();
+    } else {
+      return Server.builder()
+          .http(kaldbConfig.getIndexerConfig().getServerPort())
+          .verboseResponses(true)
+          .service(GrpcService.builder().addService(service).build())
+          .build();
+    }
   }
 
-  public static Server newQueryServer(KaldbConfigs.KaldbConfig kaldbConfig, int queryPort) {
+  public static Server newQueryServer() {
     KaldbQueryService service = new KaldbQueryService();
     return Server.builder()
-        .http(queryPort)
+        // Hardcoding this could mean port collisions b/w tests running in paralle.
+        .http(0)
         .verboseResponses(true)
         .service(GrpcService.builder().addService(service).build())
         .build();
@@ -131,32 +177,38 @@ public class KaldbQueryServiceTest {
 
   @AfterClass
   public static void shutdownServer() throws Exception {
-    if (chunkManagerUtil != null) {
-      chunkManagerUtil.close();
+    if (chunkManagerUtil1 != null) {
+      chunkManagerUtil1.close();
+    }
+    if (chunkManagerUtil2 != null) {
+      chunkManagerUtil2.close();
     }
     if (kafkaServer != null) {
       kafkaServer.close();
     }
-    if (indexerMetricsRegistry != null) {
-      indexerMetricsRegistry.close();
+    if (indexerMetricsRegistry1 != null) {
+      indexerMetricsRegistry1.close();
     }
-    if (indexingServer != null) {
-      indexingServer.stop().join();
+    if (indexingServer1 != null) {
+      indexingServer1.stop().join();
+    }
+    if (indexerMetricsRegistry2 != null) {
+      indexerMetricsRegistry2.close();
+    }
+    if (indexingServer2 != null) {
+      indexingServer2.stop().join();
     }
     if (queryServer != null) {
       queryServer.stop().join();
     }
   }
 
-  // TODO: Add a test to query multiple servers and aggregate their results.
-  // TODO: Add a test where one of the servers times out/throws error.
   // TODO: Add a test for a non-existent server.
-  // TODO: Add a case where the time out is hit even server responses are successful.
 
   @Test
   public void testSearch() {
     KaldbSearch.SearchResult searchResponse =
-        readServiceStub.search(
+        queryServiceStub.search(
             KaldbSearch.SearchRequest.newBuilder()
                 .setIndexName(MessageUtil.TEST_INDEX_NAME)
                 .setQueryString("*:*")
@@ -167,5 +219,28 @@ public class KaldbQueryServiceTest {
                 .build());
 
     assertThat(searchResponse.getHitsCount()).isEqualTo(100);
+    assertThat(searchResponse.getTotalCount()).isEqualTo(200);
+    assertThat(searchResponse.getTotalNodes()).isEqualTo(2);
+    assertThat(searchResponse.getFailedNodes()).isEqualTo(0);
+  }
+
+  @Test
+  public void testSearchWithOneShardTimeout() {
+    KaldbQueryService.READ_TIMEOUT_MS = 2000;
+    KaldbSearch.SearchResult searchResponse =
+        queryServiceStub.search(
+            KaldbSearch.SearchRequest.newBuilder()
+                .setIndexName(MessageUtil.TEST_INDEX_NAME)
+                .setQueryString("*:*")
+                .setStartTimeEpochMs(0L)
+                .setEndTimeEpochMs(1601547099000L)
+                .setHowMany(100)
+                .setBucketCount(2)
+                .build());
+
+    assertThat(searchResponse.getHitsCount()).isEqualTo(100);
+    assertThat(searchResponse.getTotalCount()).isEqualTo(100);
+    assertThat(searchResponse.getTotalNodes()).isEqualTo(2);
+    assertThat(searchResponse.getFailedNodes()).isEqualTo(1);
   }
 }

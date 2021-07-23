@@ -390,6 +390,12 @@
             <version>0.3.1</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.spotify</groupId>
+            <artifactId>futures-extra</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>
