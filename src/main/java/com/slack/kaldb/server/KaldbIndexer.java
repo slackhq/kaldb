@@ -136,18 +136,6 @@ public class KaldbIndexer {
     kafkaWriter = KaldbKafkaWriter.fromConfig(logMessageWriterImpl, meterRegistry);
   }
 
-  /**
-   * This constructor takes a kafkaWriter unlike the above constructor which takes the building
-   * blocks for creating the kafkaWriter The reaon being for tests we might want to pass in a custom
-   * kafkaWriter fro
-   */
-  public KaldbIndexer(ChunkManager<LogMessage> chunkManager, KaldbKafkaWriter kafkaWriter) {
-    checkNotNull(chunkManager, "Chunk manager can't be null");
-    checkNotNull(kafkaWriter, "KaldbKafkaWriter can't be null");
-    this.chunkManager = chunkManager;
-    this.kafkaWriter = kafkaWriter;
-  }
-
   public void start() {
     LOG.info("Starting indexing into Kaldb.");
     kafkaWriter.start();

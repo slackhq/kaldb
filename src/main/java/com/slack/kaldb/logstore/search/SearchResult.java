@@ -2,6 +2,7 @@ package com.slack.kaldb.logstore.search;
 
 import com.google.common.base.Objects;
 import com.slack.kaldb.histogram.HistogramBucket;
+import com.slack.kaldb.logstore.LogMessage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +33,19 @@ public class SearchResult<T> {
     this.totalNodes = 0;
     this.totalSnapshots = 0;
     this.snapshotsWithReplicas = 0;
+  }
+
+  public static SearchResult<LogMessage> fromSearchResultAndIncrementNodeCount(
+      SearchResult<LogMessage> searchResult) {
+    return new SearchResult<>(
+        searchResult.hits,
+        searchResult.tookMicros,
+        searchResult.totalCount,
+        searchResult.buckets,
+        searchResult.failedNodes,
+        searchResult.totalNodes + 1,
+        searchResult.totalSnapshots,
+        searchResult.snapshotsWithReplicas);
   }
 
   // TODO: Make search result a protobuf?

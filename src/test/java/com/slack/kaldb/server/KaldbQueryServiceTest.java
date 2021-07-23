@@ -19,8 +19,6 @@ import com.slack.kaldb.testlib.ChunkManagerUtil;
 import com.slack.kaldb.testlib.KaldbConfigUtil;
 import com.slack.kaldb.testlib.MessageUtil;
 import com.slack.kaldb.testlib.TestKafkaServer;
-import com.slack.kaldb.writer.LogMessageWriterImpl;
-import com.slack.kaldb.writer.kafka.KaldbKafkaWriter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -95,6 +93,9 @@ public class KaldbQueryServiceTest {
             KALDB_TEST_CLIENT,
             TEST_S3_BUCKET,
             8081);
+
+    // Set it to the new config so that the new kafka writer picks up this config
+    KaldbConfig.initFromConfigObject(kaldbConfig2);
     chunkManagerUtil2 =
         new ChunkManagerUtil<>(
             S3_MOCK_RULE, indexerMetricsRegistry2, 10 * 1024 * 1024 * 1024L, 100);
@@ -138,14 +139,11 @@ public class KaldbQueryServiceTest {
       int waitForSearchMs)
       throws InterruptedException {
 
-    LogMessageWriterImpl logMessageWriterImpl =
-        new LogMessageWriterImpl(
-            chunkManagerUtil.chunkManager, KaldbIndexer.dataTransformerMap.get("api_log"));
-    KaldbKafkaWriter kafkaWriter =
-        KaldbKafkaWriter.fromConfig(
-            kaldbConfig.getKafkaConfig(), logMessageWriterImpl, meterRegistry);
-
-    KaldbIndexer indexer = new KaldbIndexer(chunkManagerUtil.chunkManager, kafkaWriter);
+    KaldbIndexer indexer =
+        new KaldbIndexer(
+            chunkManagerUtil.chunkManager,
+            KaldbIndexer.dataTransformerMap.get("api_log"),
+            meterRegistry);
     indexer.start();
     Thread.sleep(1000); // Wait for consumer start.
 
@@ -222,6 +220,8 @@ public class KaldbQueryServiceTest {
 
     assertThat(searchResponse.getHitsCount()).isEqualTo(100);
     assertThat(searchResponse.getTotalCount()).isEqualTo(200);
+    assertThat(searchResponse.getTotalNodes()).isEqualTo(2);
+    assertThat(searchResponse.getFailedNodes()).isEqualTo(0);
   }
 
   @Test
@@ -240,5 +240,7 @@ public class KaldbQueryServiceTest {
 
     assertThat(searchResponse.getHitsCount()).isEqualTo(100);
     assertThat(searchResponse.getTotalCount()).isEqualTo(100);
+    assertThat(searchResponse.getTotalNodes()).isEqualTo(2);
+    assertThat(searchResponse.getFailedNodes()).isEqualTo(1);
   }
 }

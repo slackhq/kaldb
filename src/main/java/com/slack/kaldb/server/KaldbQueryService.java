@@ -31,7 +31,7 @@ public class KaldbQueryService extends KaldbServiceGrpc.KaldbServiceImplBase {
   public static int READ_TIMEOUT_MS = 15000;
 
   public static final KaldbSearch.SearchResult error =
-      KaldbSearch.SearchResult.newBuilder().setFailedNodes(1).setTotalNodes(1).build();
+      KaldbSearch.SearchResult.newBuilder().setFailedNodes(1).setTotalNodes(0).build();
 
   // TODO Cache the stub
   // TODO Integrate with ZK to update list of servers
@@ -70,6 +70,7 @@ public class KaldbQueryService extends KaldbServiceGrpc.KaldbServiceImplBase {
                     results
                         .stream()
                         .map(KaldbLocalSearcher::fromSearchResultProto)
+                        .map(SearchResult::fromSearchResultAndIncrementNodeCount)
                         .collect(Collectors.toList()));
 
     CompletableFuture<SearchResult<LogMessage>> aggregatedResults =
