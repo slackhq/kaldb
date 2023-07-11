@@ -22,7 +22,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAccessor;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +47,8 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
+import javax.management.Query;
+
 @State(Scope.Thread)
 public class QueryBenchmark {
   private final Duration commitInterval = Duration.ofSeconds(5 * 60);
@@ -49,6 +60,55 @@ public class QueryBenchmark {
 
   private static final SimpleDateFormat df = new SimpleDateFormat("yyyy-mm-ddHH:mm:ss.SSSzzz");
   private LogIndexSearcher logIndexSearcher;
+
+  public static void main(String args[]) {
+    QueryBenchmark queryBenchmark = new QueryBenchmark();
+    try {
+      queryBenchmark.indexDocuments();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void indexDocuments() throws IOException {
+    // active tracer required for search currently
+    Tracing.newBuilder().build();
+
+    // raises logging level of Tracer to Warning, to prevent excessive log messages
+    final Logger logger = Logger.getLogger(Tracer.class.getName());
+    logger.setLevel(java.util.logging.Level.INFO);
+
+    registry = new SimpleMeterRegistry();
+    tempDirectory =
+            Files.createDirectories(
+                    Paths.get("jmh-output", "10k"));
+    logStore =
+            LuceneIndexStoreImpl.makeLogStore(
+                    tempDirectory.toFile(),
+                    commitInterval,
+                    refreshInterval,
+                    true,
+                    SchemaAwareLogDocumentBuilderImpl.FieldConflictPolicy.CONVERT_VALUE_AND_DUPLICATE_FIELD,
+                    registry);
+
+
+    Instant instant = LocalDateTime.of(2020, 1, 1, 1, 0, 0).atZone(ZoneOffset.UTC).toInstant();
+    for (int i=0; i<10_000; i++) {
+      LogMessage logMessage = generateLogMessage(i, instant.plus(1, ChronoUnit.MILLIS));
+      logStore.addMessage(logMessage);
+    }
+
+    logStore.commit();
+    logStore.refresh();
+  }
+
+
+  private LogMessage generateLogMessage(int id, Instant time) {
+    Map<String, Object> fields = new HashMap<>();
+    fields.put(LogMessage.ReservedField.MESSAGE.fieldName, "message");
+
+    return new LogMessage("testindex", "test", String.valueOf(id), time, fields);
+  }
 
   @Setup(Level.Trial)
   public void createIndexer() throws Exception {
