@@ -196,6 +196,11 @@ message ManagerConfig {
     repeated string replica_sets = 4;
   }
 
+  message KafkaTransactionRepairServiceConfig {
+    int32 schedule_period_mins = 1;
+    KafkaConfig kafka_config = 2;
+  }
+
   // Event aggregation secs is a de-bounce setting. It's the time
   // a service waits to take an action after a zk notification.
   int32 event_aggregation_secs = 1;
@@ -213,6 +218,7 @@ message ManagerConfig {
       recovery_task_assignment_service_config = 8;
   SnapshotDeletionServiceConfig snapshot_deletion_service_config = 9;
   ReplicaRestoreServiceConfig replica_restore_service_config = 10;
+  KafkaTransactionRepairServiceConfig kafka_transaction_repair_service_config = 11;
 }
 
 // Config for the recovery node.

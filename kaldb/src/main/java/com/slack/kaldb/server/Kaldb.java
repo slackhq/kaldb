@@ -294,6 +294,10 @@ public class Kaldb {
       services.add(armeriaService);
 
       services.add(
+          new KafkaTransactionRepairService(
+              managerConfig.getKafkaTransactionRepairServiceConfig()));
+
+      services.add(
           new CloseableLifecycleManager(
               KaldbConfigs.NodeRole.MANAGER,
               List.of(

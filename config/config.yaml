@@ -98,6 +98,11 @@ managerConfig:
     maxReplicasPerRequest: ${KALDB_MANAGER_REPLICA_RESTORE_MAX_REPLICAS_PER_REQUEST:-200}
     replicaLifespanMins: ${KALDB_MANAGER_REPLICA_RESTORE_LIFESPAN_MINS:-60}
     replicaSets: [${KALDB_MANAGER_REPLICA_SETS:-rep1}]
+  kafkaTransactionRepairServiceConfig:
+    schedulePeriodMins: ${KALDB_MANAGER_KAFKA_TRANSACTION_REPAIR_PERIOD_MINS:-5}
+    kafkaConfig:
+      kafkaTopic: ${KAFKA_TOPIC:-test-topic}
+      kafkaBootStrapServers: ${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
 
 clusterConfig:
   clusterName: ${KALDB_CLUSTER_NAME:-kaldb_local}
