@@ -96,6 +96,8 @@ public class KafkaTransactionRepairService extends AbstractScheduledService {
                   LOG.info("Aborting transaction using spec - {}", abortTransactionSpec);
                   // adminClient.abortTransaction(abortTransactionSpec).all();
                 }
+              } else {
+                LOG.info("Found transaction that appeared valid {}", transactionDescription);
               }
             } else {
               LOG.warn("Transaction description missing start time, {}", transactionDescription);
