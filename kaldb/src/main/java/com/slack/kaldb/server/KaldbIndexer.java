@@ -120,7 +120,7 @@ public class KaldbIndexer extends AbstractExecutionThreadService {
     // Close these stores since we don't need them after preStart.
     snapshotMetadataStore.close();
     recoveryTaskMetadataStore.close();
-    LOG.info("Completed Kaldb indexer pre start.");
+    LOG.info("Completed Kaldb indexer pre start - currentEndOffsetForPartition {}, currentBeginningOffsetForPartition {}, startOffset {}", currentEndOffsetForPartition, currentBeginningOffsetForPartition, startOffset);
 
     return startOffset;
   }
