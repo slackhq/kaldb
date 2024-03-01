@@ -14,6 +14,7 @@ import com.slack.kaldb.writer.KafkaUtils;
 import com.slack.service.murron.trace.Trace;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
@@ -273,6 +274,7 @@ public class BulkIngestKafkaProducer extends AbstractExecutionThreadService {
       // call once per batch and use the same partition for better batching
       // todo - this probably shouldn't be tied to the transaction batching logic?
       int partition = getPartition(index);
+      meterRegistry.counter("bulk_ingest_producer_kafka_partition", Tags.of("partitionId", String.valueOf(partition))).increment();
 
       // since there isn't a dataset provisioned for this service/index we will not index this set
       // of docs
