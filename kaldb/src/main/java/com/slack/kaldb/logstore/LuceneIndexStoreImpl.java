@@ -15,6 +15,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.FileUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -72,6 +74,10 @@ public class LuceneIndexStoreImpl implements LogStore<LogMessage> {
   private final Integer CFS_FILES_SIZE_MB_CUTOFF = 128;
 
   private final ReentrantLock indexWriterLock = new ReentrantLock();
+
+  // We use a phaser to allow all originally submitted writes (potentially in other threads) to
+  // finish before invoking a close on the indexWriter
+  private final Phaser pendingWritesPhaser = new Phaser();
 
   // TODO: Set the policy via a lucene config file.
   public static LuceneIndexStoreImpl makeLogStore(
@@ -255,6 +261,7 @@ public class LuceneIndexStoreImpl implements LogStore<LogMessage> {
 
   @Override
   public void addMessage(LogMessage message) {
+    pendingWritesPhaser.register();
     try {
       messagesReceivedCounter.increment();
       if (indexWriter.isPresent()) {
@@ -270,6 +277,8 @@ public class LuceneIndexStoreImpl implements LogStore<LogMessage> {
       // TODO: In future may need to handle this case more gracefully.
       LOG.error("failed to add document", e);
       new RuntimeHalterImpl().handleFatal(e);
+    } finally {
+      pendingWritesPhaser.arriveAndDeregister();
     }
   }
 
@@ -366,6 +375,13 @@ public class LuceneIndexStoreImpl implements LogStore<LogMessage> {
    */
   @Override
   public void close() {
+    try {
+      // Wait for all previously submitted pendingWrites to finish
+      pendingWritesPhaser.awaitAdvanceInterruptibly(0, 5, TimeUnit.SECONDS);
+    } catch (Exception e) {
+      LOG.warn("Timeout waiting for pendingWritesPhaser to advance", e);
+    }
+
     indexWriterLock.lock();
     try {
       if (indexWriter.isEmpty()) {

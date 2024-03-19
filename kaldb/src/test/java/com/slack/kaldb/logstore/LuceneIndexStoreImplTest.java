@@ -15,6 +15,7 @@ import static com.slack.kaldb.testlib.TemporaryLogStoreAndSearcherExtension.addM
 import static com.slack.kaldb.testlib.TemporaryLogStoreAndSearcherExtension.findAllMessages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import brave.Tracing;
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
@@ -38,20 +39,29 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.lucene.index.IndexCommit;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 @SuppressWarnings("unused")
 public class LuceneIndexStoreImplTest {
+  private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexStoreImplTest.class);
+
   @BeforeAll
   public static void beforeClass() {
     Tracing.newBuilder().build();
@@ -538,5 +548,80 @@ public class LuceneIndexStoreImplTest {
     assertThat(LuceneIndexStoreImpl.getRAMBufferSizeMB((long) 8e+9)).isEqualTo(800);
     assertThat(LuceneIndexStoreImpl.getRAMBufferSizeMB(Long.MAX_VALUE)).isEqualTo(256);
     assertThat(LuceneIndexStoreImpl.getRAMBufferSizeMB((long) 24e+9)).isEqualTo(2048);
+  }
+
+  @Test
+  @Disabled("Demo test of phaser logic")
+  public void phaserDemoTest() throws InterruptedException, TimeoutException {
+    AtomicInteger registers = new AtomicInteger(0);
+    AtomicInteger deRegisters = new AtomicInteger(0);
+    Phaser phaser = new Phaser();
+
+    // wait 5 seconds, and finish task1
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              try {
+                Thread.sleep(100);
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+              // start task1
+              phaser.register();
+              registers.incrementAndGet();
+              LOG.info("Phase1 enter");
+              try {
+                Thread.sleep(5000);
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+              phaser.arriveAndDeregister();
+              deRegisters.incrementAndGet();
+              LOG.info("Phase1 exit");
+            });
+
+    // wait 1 second, start task 2, wait 1 more second, finish task 2
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              try {
+                Thread.sleep(1000);
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+              phaser.register();
+              registers.incrementAndGet();
+              LOG.info("Phase2 enter");
+              try {
+                Thread.sleep(1000);
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+              phaser.arriveAndDeregister();
+              deRegisters.incrementAndGet();
+              LOG.info("Phase2 exit");
+            });
+
+    LOG.info("Wait for phase close - {}", phaser.getPhase());
+    phaser.awaitAdvanceInterruptibly(0, 10, TimeUnit.SECONDS);
+    LOG.info("Phaser Registers - {}, deRegisters - {}", registers.get(), deRegisters.get());
+
+    Phaser immediatelyClosedPhaser = new Phaser();
+    // this will timeout, since no task is was ever registered
+    assertThrows(
+        TimeoutException.class,
+        () -> immediatelyClosedPhaser.awaitAdvanceInterruptibly(0, 1, TimeUnit.SECONDS));
+    LOG.info(
+        "ImmediatelyClosed Registers - {}, deRegisters - {}", registers.get(), deRegisters.get());
+
+    Phaser phaserWithExitingRegisterUnregister = new Phaser();
+    phaserWithExitingRegisterUnregister.register();
+    phaserWithExitingRegisterUnregister.arriveAndDeregister();
+    // this will timeout, since no task is advancing
+    phaserWithExitingRegisterUnregister.awaitAdvanceInterruptibly(0, 1, TimeUnit.SECONDS);
+    LOG.info(
+        "PhaserWithExitingRegisterUnregister Registers - {}, deRegisters - {}",
+        registers.get(),
+        deRegisters.get());
   }
 }
