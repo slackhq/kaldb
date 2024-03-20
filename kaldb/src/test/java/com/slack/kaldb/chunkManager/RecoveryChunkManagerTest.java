@@ -37,6 +37,7 @@ import com.slack.kaldb.metadata.search.SearchMetadataStore;
 import com.slack.kaldb.metadata.snapshot.SnapshotMetadata;
 import com.slack.kaldb.metadata.snapshot.SnapshotMetadataStore;
 import com.slack.kaldb.proto.config.KaldbConfigs;
+import com.slack.kaldb.proto.schema.Schema;
 import com.slack.kaldb.testlib.KaldbConfigUtil;
 import com.slack.kaldb.testlib.MessageUtil;
 import com.slack.kaldb.testlib.SpanUtil;
@@ -375,7 +376,7 @@ public class RecoveryChunkManagerTest {
         Trace.KeyValue.newBuilder()
             .setVInt32(20000)
             .setKey(LogMessage.ReservedField.HOSTNAME.fieldName)
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .build();
     Trace.Span msg100 = SpanUtil.makeSpan(100, "Message100", Instant.now(), List.of(conflictTag));
     chunkManager.addMessage(msg100, msg100.toString().length(), TEST_KAFKA_PARTITION_ID, offset);

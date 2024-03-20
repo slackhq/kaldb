@@ -57,6 +57,7 @@ import com.slack.kaldb.metadata.search.SearchMetadataStore;
 import com.slack.kaldb.metadata.snapshot.SnapshotMetadata;
 import com.slack.kaldb.metadata.snapshot.SnapshotMetadataStore;
 import com.slack.kaldb.proto.config.KaldbConfigs;
+import com.slack.kaldb.proto.schema.Schema;
 import com.slack.kaldb.proto.service.KaldbSearch;
 import com.slack.kaldb.testlib.KaldbConfigUtil;
 import com.slack.kaldb.testlib.MessageUtil;
@@ -744,7 +745,7 @@ public class IndexingChunkManagerTest {
                 Trace.KeyValue.newBuilder()
                     .setVInt32(20000)
                     .setKey(LogMessage.ReservedField.HOSTNAME.fieldName)
-                    .setVType(Trace.ValueType.INT32)
+                    .setFieldType(Schema.SchemaFieldType.INTEGER)
                     .build())
             .build();
     chunkManager.addMessage(
@@ -1446,7 +1447,7 @@ public class IndexingChunkManagerTest {
     Trace.KeyValue schemaTestTag =
         Trace.KeyValue.newBuilder()
             .setKey("schemaTest")
-            .setVType(Trace.ValueType.BOOL)
+            .setFieldType(Schema.SchemaFieldType.BOOLEAN)
             .setVBool(true)
             .build();
     Trace.Span logMessage =

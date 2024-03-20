@@ -33,6 +33,7 @@ import com.slack.kaldb.metadata.search.SearchMetadataStore;
 import com.slack.kaldb.metadata.snapshot.SnapshotMetadata;
 import com.slack.kaldb.metadata.snapshot.SnapshotMetadataStore;
 import com.slack.kaldb.proto.config.KaldbConfigs;
+import com.slack.kaldb.proto.schema.Schema;
 import com.slack.kaldb.testlib.MessageUtil;
 import com.slack.kaldb.testlib.SpanUtil;
 import com.slack.service.murron.trace.Trace;
@@ -505,7 +506,7 @@ public class IndexingChunkImplTest {
                   Trace.KeyValue.newBuilder()
                       .setVInt32(123)
                       .setKey(LogMessage.ReservedField.MESSAGE.fieldName)
-                      .setVType(Trace.ValueType.INT32)
+                      .setFieldType(Schema.SchemaFieldType.INTEGER)
                       .build())
               .build();
 

@@ -123,7 +123,6 @@ public class BulkApiRequestParser {
       spanBuilder.addTags(
           Trace.KeyValue.newBuilder()
               .setKey(SERVICE_NAME_KEY)
-              .setVType(Trace.ValueType.STRING)
               .setFieldType(Schema.SchemaFieldType.KEYWORD)
               .setVStr(index)
               .build());

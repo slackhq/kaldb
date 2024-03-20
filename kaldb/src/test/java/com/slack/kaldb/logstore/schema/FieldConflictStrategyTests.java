@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.slack.kaldb.logstore.FieldDefMismatchException;
 import com.slack.kaldb.logstore.LogMessage;
 import com.slack.kaldb.metadata.schema.FieldType;
+import com.slack.kaldb.proto.schema.Schema;
 import com.slack.kaldb.testlib.SpanUtil;
 import com.slack.service.murron.trace.Trace;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -50,28 +51,28 @@ public class FieldConflictStrategyTests {
     Trace.KeyValue hostField =
         Trace.KeyValue.newBuilder()
             .setKey(LogMessage.ReservedField.HOSTNAME.fieldName)
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr("host1-dc2.abc.com")
             .build();
 
     Trace.KeyValue tagField =
         Trace.KeyValue.newBuilder()
             .setKey(LogMessage.ReservedField.TAG.fieldName)
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr("foo-bar")
             .build();
 
     Trace.KeyValue conflictingTagStr =
         Trace.KeyValue.newBuilder()
             .setKey(conflictingFieldName)
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr("1")
             .build();
 
     Trace.KeyValue conflictingTagInt =
         Trace.KeyValue.newBuilder()
             .setKey(conflictingFieldName)
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .setVInt32(1)
             .build();
 
@@ -125,35 +126,35 @@ public class FieldConflictStrategyTests {
     Trace.KeyValue hostField =
         Trace.KeyValue.newBuilder()
             .setKey(LogMessage.ReservedField.HOSTNAME.fieldName)
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr("host1-dc2.abc.com")
             .build();
 
     Trace.KeyValue tagField =
         Trace.KeyValue.newBuilder()
             .setKey(LogMessage.ReservedField.TAG.fieldName)
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr("foo-bar")
             .build();
 
     Trace.KeyValue conflictingTagBool =
         Trace.KeyValue.newBuilder()
             .setKey(conflictingFieldName)
-            .setVType(Trace.ValueType.BOOL)
+            .setFieldType(Schema.SchemaFieldType.BOOLEAN)
             .setVBool(true)
             .build();
 
     Trace.KeyValue conflictingTagStr =
         Trace.KeyValue.newBuilder()
             .setKey(conflictingFieldName)
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr("random")
             .build();
 
     Trace.KeyValue conflictingTagInt =
         Trace.KeyValue.newBuilder()
             .setKey(conflictingFieldName)
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .setVInt32(1)
             .build();
 
@@ -213,7 +214,7 @@ public class FieldConflictStrategyTests {
 
     msg2Doc = convertAndDuplicateFieldDocBuilder.fromMessage(doc2);
     assertThat(msg2Doc.getFields().size()).isEqualTo(31);
-    String additionalCreatedFieldName = makeNewFieldOfType(conflictingFieldName, FieldType.STRING);
+    String additionalCreatedFieldName = makeNewFieldOfType(conflictingFieldName, FieldType.KEYWORD);
     // Value converted and new field is added.
     assertThat(getFieldCount(msg2Doc, Set.of(conflictingFieldName, additionalCreatedFieldName)))
         .isEqualTo(4);
