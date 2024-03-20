@@ -1,6 +1,7 @@
 package com.slack.kaldb.writer;
 
 import static com.slack.kaldb.bulkIngestApi.opensearch.BulkApiRequestParser.convertRequestToDocument;
+import static com.slack.kaldb.bulkIngestApi.opensearch.BulkApiRequestParserTest.getIndexRequestBytes;
 import static com.slack.kaldb.logstore.LuceneIndexStoreImpl.MESSAGES_FAILED_COUNTER;
 import static com.slack.kaldb.logstore.LuceneIndexStoreImpl.MESSAGES_RECEIVED_COUNTER;
 import static com.slack.kaldb.server.KaldbConfig.DEFAULT_START_STOP_DURATION;
@@ -19,11 +20,13 @@ import com.slack.kaldb.logstore.LogMessage;
 import com.slack.kaldb.logstore.search.SearchQuery;
 import com.slack.kaldb.logstore.search.SearchResult;
 import com.slack.kaldb.logstore.search.aggregations.DateHistogramAggBuilder;
+import com.slack.kaldb.metadata.schema.SchemaUtil;
 import com.slack.kaldb.proto.schema.Schema;
 import com.slack.kaldb.testlib.ChunkManagerUtil;
 import com.slack.kaldb.testlib.KaldbConfigUtil;
 import com.slack.service.murron.trace.Trace;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -36,6 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.record.TimestampType;
+import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -287,6 +291,97 @@ public class LogMessageWriterImplTest {
     value = results.hits.get(0).getSource().get("message");
     // HashMap#toString in SpanFormatter#convertKVtoProto for the binary field type case
     assertThat(value).isEqualTo("{nestedField2=nestedValue2, nestedField1=nestedValue1}");
+  }
+
+  @Test
+  public void indexAndSearchAllFieldTypes() throws IOException {
+    final File schemaFile =
+        new File(getClass().getClassLoader().getResource("schema/test_schema.yaml").getFile());
+    Schema.IngestSchema schema = SchemaUtil.parseSchema(schemaFile.toPath());
+
+    byte[] rawRequest = getIndexRequestBytes("index_all_schema_fields");
+    List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
+    AssertionsForClassTypes.assertThat(indexRequests.size()).isEqualTo(1);
+
+    for (IndexRequest indexRequest : indexRequests) {
+      IngestDocument ingestDocument = convertRequestToDocument(indexRequest);
+      Trace.Span span = BulkApiRequestParser.fromIngestDocument(ingestDocument, schema);
+      ConsumerRecord<String, byte[]> spanRecord = consumerRecordWithValue(span.toByteArray());
+      LogMessageWriterImpl messageWriter = new LogMessageWriterImpl(chunkManagerUtil.chunkManager);
+      assertThat(messageWriter.insertRecord(spanRecord)).isTrue();
+    }
+
+    assertThat(getCount(MESSAGES_RECEIVED_COUNTER, metricsRegistry)).isEqualTo(1);
+    assertThat(getCount(MESSAGES_FAILED_COUNTER, metricsRegistry)).isEqualTo(0);
+    chunkManagerUtil.chunkManager.getActiveChunk().commit();
+
+    SearchResult<LogMessage> results = searchChunkManager("test", "_id:1");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    // message field
+    results = searchChunkManager("test", "message:foo");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "message:bar");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "message:\"foo bar\"");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "ip:0.0.0.0");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "ip:[0.0.0.0 TO 0.0.0.1]");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "my_date:\"2014-09-01T12:00:00Z\"");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results =
+        searchChunkManager(
+            "test", "my_date:[\"2014-09-01T12:00:00Z\" TO \"2014-09-01T12:00:00Z\"]");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "success:true");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "cost:4.0");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "cost:[0 TO 4.0]");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "cost:[4 TO 4.1]");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "amount:1.1");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "amount:[1 TO 1.1]");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "amount_half_float:1.2");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "amount_half_float:[1.0 TO 1.3]");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "value:42");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "value:[0 TO 42]");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "count:3");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "count:[3 TO 42]");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "count_scaled_long:80");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "count_scaled_long:[79 TO 81}");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "count_short:10");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "count_short:{9 TO 10]");
+    assertThat(results.hits.size()).isEqualTo(1);
+
+    results = searchChunkManager("test", "bucket:20");
+    assertThat(results.hits.size()).isEqualTo(1);
+    results = searchChunkManager("test", "bucket:[0 TO 20]");
+    assertThat(results.hits.size()).isEqualTo(1);
   }
 
   @Test

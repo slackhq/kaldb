@@ -24,6 +24,7 @@ import com.slack.kaldb.logstore.search.aggregations.MinAggBuilder;
 import com.slack.kaldb.logstore.search.aggregations.MovingAvgAggBuilder;
 import com.slack.kaldb.logstore.search.aggregations.SumAggBuilder;
 import com.slack.kaldb.logstore.search.aggregations.TermsAggBuilder;
+import com.slack.kaldb.proto.schema.Schema;
 import com.slack.kaldb.testlib.SpanUtil;
 import com.slack.kaldb.testlib.TemporaryLogStoreAndSearcherExtension;
 import com.slack.service.murron.trace.Trace;
@@ -259,7 +260,7 @@ public class LogIndexSearcherImplTest {
         Trace.KeyValue.newBuilder()
             .setVStr("value")
             .setKey("customField")
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .build();
 
     strictLogStore.logStore.addMessage(SpanUtil.makeSpan(1, "apple", time, List.of(customField)));
@@ -307,7 +308,7 @@ public class LogIndexSearcherImplTest {
         Trace.KeyValue.newBuilder()
             .setVStr("value")
             .setKey("customField")
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .build();
     strictLogStoreWithoutFts.logStore.addMessage(
         SpanUtil.makeSpan(1, "apple", time, List.of(customField)));
@@ -355,13 +356,13 @@ public class LogIndexSearcherImplTest {
         Trace.KeyValue.newBuilder()
             .setVStr("value")
             .setKey("customField")
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .build();
     Trace.KeyValue customField1 =
         Trace.KeyValue.newBuilder()
             .setVStr("value")
             .setKey("customField1")
-            .setVType(Trace.ValueType.STRING)
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .build();
     strictLogStore.logStore.addMessage(SpanUtil.makeSpan(1, "apple", time, List.of(customField)));
     strictLogStore.logStore.addMessage(SpanUtil.makeSpan(2, "apple", time, List.of(customField1)));
@@ -409,19 +410,19 @@ public class LogIndexSearcherImplTest {
     Trace.KeyValue valTag1 =
         Trace.KeyValue.newBuilder()
             .setKey("val")
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .setVInt32(1)
             .build();
     Trace.KeyValue valTag2 =
         Trace.KeyValue.newBuilder()
             .setKey("val")
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .setVInt32(2)
             .build();
     Trace.KeyValue valTag3 =
         Trace.KeyValue.newBuilder()
             .setKey("val")
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .setVInt32(3)
             .build();
     strictLogStore.logStore.addMessage(SpanUtil.makeSpan(1, "apple", time, List.of(valTag1)));
@@ -461,35 +462,35 @@ public class LogIndexSearcherImplTest {
         Trace.KeyValue.newBuilder()
             .setVBool(true)
             .setKey("boolval")
-            .setVType(Trace.ValueType.BOOL)
+            .setFieldType(Schema.SchemaFieldType.BOOLEAN)
             .build();
 
     Trace.KeyValue intTag =
         Trace.KeyValue.newBuilder()
             .setVInt32(1)
             .setKey("intval")
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .build();
 
     Trace.KeyValue longTag =
         Trace.KeyValue.newBuilder()
             .setVInt64(2L)
             .setKey("longval")
-            .setVType(Trace.ValueType.INT64)
+            .setFieldType(Schema.SchemaFieldType.LONG)
             .build();
 
     Trace.KeyValue floatTag =
         Trace.KeyValue.newBuilder()
             .setVFloat32(3F)
             .setKey("floatval")
-            .setVType(Trace.ValueType.FLOAT32)
+            .setFieldType(Schema.SchemaFieldType.FLOAT)
             .build();
 
     Trace.KeyValue doubleTag =
         Trace.KeyValue.newBuilder()
             .setVFloat64(4D)
             .setKey("doubleval")
-            .setVType(Trace.ValueType.FLOAT64)
+            .setFieldType(Schema.SchemaFieldType.DOUBLE)
             .build();
 
     Trace.Span span =
@@ -1032,7 +1033,7 @@ public class LogIndexSearcherImplTest {
         Trace.KeyValue.newBuilder()
             .setVInt32(1234)
             .setKey("field1")
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .build();
 
     strictLogStore.logStore.addMessage(SpanUtil.makeSpan(1, "apple", time, List.of(customField)));
@@ -1280,7 +1281,7 @@ public class LogIndexSearcherImplTest {
         Trace.KeyValue.newBuilder()
             .setVInt32(1234)
             .setKey("field1")
-            .setVType(Trace.ValueType.INT32)
+            .setFieldType(Schema.SchemaFieldType.INTEGER)
             .build();
 
     strictLogStoreWithoutFts.logStore.addMessage(

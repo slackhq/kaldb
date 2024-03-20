@@ -221,20 +221,36 @@ public class OpenSearchAdapter {
       try {
         if (entry.getValue().fieldType == FieldType.TEXT) {
           tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "text"));
-        } else if (entry.getValue().fieldType == FieldType.STRING) {
+        } else if (entry.getValue().fieldType == FieldType.STRING
+            || entry.getValue().fieldType == FieldType.KEYWORD
+            || entry.getValue().fieldType == FieldType.ID) {
           tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "keyword"));
-        } else if (entry.getValue().fieldType == FieldType.ID) {
-          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "keyword"));
-        } else if (entry.getValue().fieldType == FieldType.INTEGER) {
-          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "integer"));
-        } else if (entry.getValue().fieldType == FieldType.LONG) {
-          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "long"));
+        } else if (entry.getValue().fieldType == FieldType.IP) {
+          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "ip"));
+        } else if (entry.getValue().fieldType == FieldType.DATE) {
+          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "date"));
+        } else if (entry.getValue().fieldType == FieldType.BOOLEAN) {
+          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "boolean"));
         } else if (entry.getValue().fieldType == FieldType.DOUBLE) {
           tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "double"));
         } else if (entry.getValue().fieldType == FieldType.FLOAT) {
           tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "float"));
-        } else if (entry.getValue().fieldType == FieldType.BOOLEAN) {
-          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "boolean"));
+        } else if (entry.getValue().fieldType == FieldType.HALF_FLOAT) {
+          tryRegisterField(
+              mapperService, entry.getValue().name, b -> b.field("type", "half_float"));
+        } else if (entry.getValue().fieldType == FieldType.INTEGER) {
+          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "integer"));
+        } else if (entry.getValue().fieldType == FieldType.LONG) {
+          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "long"));
+        } else if (entry.getValue().fieldType == FieldType.SCALED_LONG) {
+          tryRegisterField(
+              mapperService, entry.getValue().name, b -> b.field("type", "scaled_long"));
+        } else if (entry.getValue().fieldType == FieldType.SHORT) {
+          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "short"));
+        } else if (entry.getValue().fieldType == FieldType.BYTE) {
+          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "byte"));
+        } else if (entry.getValue().fieldType == FieldType.BINARY) {
+          tryRegisterField(mapperService, entry.getValue().name, b -> b.field("type", "binary"));
         } else {
           LOG.warn(
               "Field type '{}' is not yet currently supported for field '{}'",
