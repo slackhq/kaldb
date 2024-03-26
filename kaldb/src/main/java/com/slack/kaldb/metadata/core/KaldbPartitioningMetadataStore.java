@@ -3,6 +3,7 @@ package com.slack.kaldb.metadata.core;
 import static com.slack.kaldb.server.KaldbConfig.DEFAULT_ZK_TIMEOUT_SECS;
 
 import com.google.common.collect.Sets;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,11 +56,15 @@ public class KaldbPartitioningMetadataStore<T extends KaldbPartitionedMetadata>
   protected final ModelSerializer<T> modelSerializer;
   private final Watcher watcher;
 
+  private final MeterRegistry meterRegistry;
+
   public KaldbPartitioningMetadataStore(
       AsyncCuratorFramework curator,
       CreateMode createMode,
       ModelSerializer<T> modelSerializer,
-      String storeFolder) {
+      String storeFolder,
+      MeterRegistry meterRegistry) {
+    this.meterRegistry = meterRegistry;
     this.curator = curator;
     this.storeFolder = storeFolder;
     this.createMode = createMode;
@@ -108,7 +113,7 @@ public class KaldbPartitioningMetadataStore<T extends KaldbPartitionedMetadata>
    * map, and removes stores that are in the map that no longer exist in ZK.
    *
    * @see KaldbMetadataStore#KaldbMetadataStore(AsyncCuratorFramework, CreateMode, boolean,
-   *     ModelSerializer, String)
+   *     ModelSerializer, String, MeterRegistry)
    */
   private Watcher buildWatcher() {
     return event -> {
@@ -261,7 +266,8 @@ public class KaldbPartitioningMetadataStore<T extends KaldbPartitionedMetadata>
               "Creating new metadata store for partition - {}, at path - {}", partition, path);
 
           KaldbMetadataStore<T> newStore =
-              new KaldbMetadataStore<>(curator, createMode, true, modelSerializer, path);
+              new KaldbMetadataStore<>(
+                  curator, createMode, true, modelSerializer, path, meterRegistry);
           listeners.forEach(newStore::addListener);
 
           return newStore;

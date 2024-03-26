@@ -64,6 +64,8 @@ public class RecoveryChunkImplTest {
   private static final Duration COMMIT_INTERVAL = Duration.ofSeconds(5 * 60);
   private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(5 * 60);
 
+  private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
   @Nested
   public class BasicTests {
     @TempDir private Path tmpPath;
@@ -92,8 +94,8 @@ public class RecoveryChunkImplTest {
               .build();
       curatorFramework = CuratorBuilder.build(registry, zkConfig);
 
-      snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-      searchMetadataStore = new SearchMetadataStore(curatorFramework, false);
+      snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework, meterRegistry);
+      searchMetadataStore = new SearchMetadataStore(curatorFramework, false, meterRegistry);
 
       final LuceneIndexStoreImpl logStore =
           LuceneIndexStoreImpl.makeLogStore(
@@ -451,8 +453,8 @@ public class RecoveryChunkImplTest {
               .build();
       curatorFramework = CuratorBuilder.build(registry, zkConfig);
 
-      snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-      searchMetadataStore = new SearchMetadataStore(curatorFramework, false);
+      snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework, meterRegistry);
+      searchMetadataStore = new SearchMetadataStore(curatorFramework, false, meterRegistry);
 
       final LuceneIndexStoreImpl logStore =
           LuceneIndexStoreImpl.makeLogStore(
@@ -546,8 +548,8 @@ public class RecoveryChunkImplTest {
 
       curatorFramework = CuratorBuilder.build(registry, zkConfig);
 
-      snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-      searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
+      snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework, meterRegistry);
+      searchMetadataStore = new SearchMetadataStore(curatorFramework, true, meterRegistry);
 
       final LuceneIndexStoreImpl logStore =
           LuceneIndexStoreImpl.makeLogStore(

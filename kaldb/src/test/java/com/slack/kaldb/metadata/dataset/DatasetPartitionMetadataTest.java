@@ -45,7 +45,7 @@ public class DatasetPartitionMetadataTest {
             .build();
 
     this.curatorFramework = CuratorBuilder.build(metricsRegistry, zkConfig);
-    this.datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+    this.datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true, metricsRegistry);
   }
 
   @AfterEach

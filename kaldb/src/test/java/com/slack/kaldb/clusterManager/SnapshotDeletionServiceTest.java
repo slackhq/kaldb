@@ -87,8 +87,8 @@ public class SnapshotDeletionServiceTest {
             .build();
 
     curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    snapshotMetadataStore = spy(new SnapshotMetadataStore(curatorFramework));
-    replicaMetadataStore = spy(new ReplicaMetadataStore(curatorFramework));
+    snapshotMetadataStore = spy(new SnapshotMetadataStore(curatorFramework, meterRegistry));
+    replicaMetadataStore = spy(new ReplicaMetadataStore(curatorFramework, meterRegistry));
 
     s3AsyncClient = S3TestUtils.createS3CrtClient(S3_MOCK_EXTENSION.getServiceEndpoint());
     s3CrtBlobFs = spy(new S3CrtBlobFs(s3AsyncClient));

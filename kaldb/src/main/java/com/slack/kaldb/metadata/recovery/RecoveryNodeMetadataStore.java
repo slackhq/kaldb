@@ -1,6 +1,7 @@
 package com.slack.kaldb.metadata.recovery;
 
 import com.slack.kaldb.metadata.core.KaldbMetadataStore;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.curator.x.async.AsyncCuratorFramework;
 import org.apache.zookeeper.CreateMode;
 
@@ -11,13 +12,15 @@ public class RecoveryNodeMetadataStore extends KaldbMetadataStore<RecoveryNodeMe
    * Initializes a recovery node metadata store at the RECOVERY_NODE_ZK_PATH. This should be used to
    * create/update the recovery nodes, and for listening to all recovery node events.
    */
-  public RecoveryNodeMetadataStore(AsyncCuratorFramework curatorFramework, boolean shouldCache) {
+  public RecoveryNodeMetadataStore(
+      AsyncCuratorFramework curatorFramework, boolean shouldCache, MeterRegistry meterRegistry) {
     super(
         curatorFramework,
         CreateMode.EPHEMERAL,
         shouldCache,
         new RecoveryNodeMetadataSerializer().toModelSerializer(),
-        RECOVERY_NODE_ZK_PATH);
+        RECOVERY_NODE_ZK_PATH,
+        meterRegistry);
   }
 
   /**
@@ -26,12 +29,16 @@ public class RecoveryNodeMetadataStore extends KaldbMetadataStore<RecoveryNodeMe
    * mutating any nodes.
    */
   public RecoveryNodeMetadataStore(
-      AsyncCuratorFramework curatorFramework, String recoveryNodeName, boolean shouldCache) {
+      AsyncCuratorFramework curatorFramework,
+      String recoveryNodeName,
+      boolean shouldCache,
+      MeterRegistry meterRegistry) {
     super(
         curatorFramework,
         CreateMode.EPHEMERAL,
         shouldCache,
         new RecoveryNodeMetadataSerializer().toModelSerializer(),
-        String.format("%s/%s", RECOVERY_NODE_ZK_PATH, recoveryNodeName));
+        String.format("%s/%s", RECOVERY_NODE_ZK_PATH, recoveryNodeName),
+        meterRegistry);
   }
 }

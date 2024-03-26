@@ -135,10 +135,12 @@ public class RecoveryService extends AbstractIdleService {
   protected void startUp() throws Exception {
     LOG.info("Starting recovery service");
 
-    recoveryNodeMetadataStore = new RecoveryNodeMetadataStore(curatorFramework, false);
-    recoveryTaskMetadataStore = new RecoveryTaskMetadataStore(curatorFramework, false);
-    snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-    searchMetadataStore = new SearchMetadataStore(curatorFramework, false);
+    recoveryNodeMetadataStore =
+        new RecoveryNodeMetadataStore(curatorFramework, false, meterRegistry);
+    recoveryTaskMetadataStore =
+        new RecoveryTaskMetadataStore(curatorFramework, false, meterRegistry);
+    snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework, meterRegistry);
+    searchMetadataStore = new SearchMetadataStore(curatorFramework, false, meterRegistry);
 
     recoveryNodeMetadataStore.createSync(
         new RecoveryNodeMetadata(
@@ -149,7 +151,8 @@ public class RecoveryService extends AbstractIdleService {
     recoveryNodeLastKnownState = Metadata.RecoveryNodeMetadata.RecoveryNodeState.FREE;
 
     recoveryNodeListenerMetadataStore =
-        new RecoveryNodeMetadataStore(curatorFramework, searchContext.hostname, true);
+        new RecoveryNodeMetadataStore(
+            curatorFramework, searchContext.hostname, true, meterRegistry);
     recoveryNodeListenerMetadataStore.addListener(recoveryNodeListener);
   }
 
@@ -174,6 +177,13 @@ public class RecoveryService extends AbstractIdleService {
   private void recoveryNodeListener(RecoveryNodeMetadata recoveryNodeMetadata) {
     Metadata.RecoveryNodeMetadata.RecoveryNodeState newRecoveryNodeState =
         recoveryNodeMetadata.recoveryNodeState;
+    if (recoveryNodeLastKnownState.equals(recoveryNodeMetadata.recoveryNodeState)) {
+      // todo - consider moving this to a model where it deduplicates with a scheduled executor,
+      // similar to the manager
+      // This can fire duplicate events if the ephemeral node is re-created
+      LOG.info("Recovery node - listener fired with no state change, skipping event");
+      return;
+    }
 
     if (newRecoveryNodeState.equals(Metadata.RecoveryNodeMetadata.RecoveryNodeState.ASSIGNED)) {
       LOG.info("Recovery node - ASSIGNED received");

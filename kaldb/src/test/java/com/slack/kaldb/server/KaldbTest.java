@@ -125,7 +125,7 @@ public class KaldbTest {
             .setSleepBetweenRetriesMs(1000)
             .build();
     curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+    datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true, meterRegistry);
     final DatasetPartitionMetadata partition =
         new DatasetPartitionMetadata(1, Long.MAX_VALUE, List.of("0", "1"));
     final List<DatasetPartitionMetadata> partitionConfigs = Collections.singletonList(partition);

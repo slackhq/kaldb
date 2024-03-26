@@ -70,6 +70,8 @@ public class IndexingChunkImplTest {
   private static final Duration COMMIT_INTERVAL = Duration.ofSeconds(5 * 60);
   private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(5 * 60);
 
+  private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
   private static void testBeforeSnapshotState(
       SnapshotMetadataStore snapshotMetadataStore,
       SearchMetadataStore searchMetadataStore,
@@ -113,8 +115,10 @@ public class IndexingChunkImplTest {
 
       curatorFramework = CuratorBuilder.build(registry, zkConfig);
 
-      SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-      SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
+      SnapshotMetadataStore snapshotMetadataStore =
+          new SnapshotMetadataStore(curatorFramework, meterRegistry);
+      SearchMetadataStore searchMetadataStore =
+          new SearchMetadataStore(curatorFramework, true, meterRegistry);
 
       final LuceneIndexStoreImpl logStore =
           LuceneIndexStoreImpl.makeLogStore(
@@ -461,8 +465,10 @@ public class IndexingChunkImplTest {
 
       curatorFramework = CuratorBuilder.build(registry, zkConfig);
 
-      SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-      SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
+      SnapshotMetadataStore snapshotMetadataStore =
+          new SnapshotMetadataStore(curatorFramework, meterRegistry);
+      SearchMetadataStore searchMetadataStore =
+          new SearchMetadataStore(curatorFramework, true, meterRegistry);
 
       final LuceneIndexStoreImpl logStore =
           LuceneIndexStoreImpl.makeLogStore(
@@ -554,8 +560,8 @@ public class IndexingChunkImplTest {
 
       curatorFramework = CuratorBuilder.build(registry, zkConfig);
 
-      snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-      searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
+      snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework, meterRegistry);
+      searchMetadataStore = new SearchMetadataStore(curatorFramework, true, meterRegistry);
 
       final LuceneIndexStoreImpl logStore =
           LuceneIndexStoreImpl.makeLogStore(

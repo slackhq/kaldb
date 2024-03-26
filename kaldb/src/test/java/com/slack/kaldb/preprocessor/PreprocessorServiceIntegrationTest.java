@@ -66,7 +66,8 @@ public class PreprocessorServiceIntegrationTest {
             .setSleepBetweenRetriesMs(100)
             .build();
     AsyncCuratorFramework curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    DatasetMetadataStore datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+    DatasetMetadataStore datasetMetadataStore =
+        new DatasetMetadataStore(curatorFramework, true, meterRegistry);
 
     KaldbConfigs.PreprocessorConfig.KafkaStreamConfig kafkaStreamConfig =
         KaldbConfigs.PreprocessorConfig.KafkaStreamConfig.newBuilder()
@@ -132,7 +133,8 @@ public class PreprocessorServiceIntegrationTest {
             .setSleepBetweenRetriesMs(30000)
             .build();
     AsyncCuratorFramework curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    DatasetMetadataStore datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+    DatasetMetadataStore datasetMetadataStore =
+        new DatasetMetadataStore(curatorFramework, true, meterRegistry);
 
     KaldbConfigs.PreprocessorConfig.KafkaStreamConfig kafkaStreamConfig =
         KaldbConfigs.PreprocessorConfig.KafkaStreamConfig.newBuilder()
@@ -192,7 +194,8 @@ public class PreprocessorServiceIntegrationTest {
             .setSleepBetweenRetriesMs(30000)
             .build();
     AsyncCuratorFramework curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    DatasetMetadataStore datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+    DatasetMetadataStore datasetMetadataStore =
+        new DatasetMetadataStore(curatorFramework, true, meterRegistry);
 
     // initialize the downstream topic
     String downstreamTopic = "test-topic-out";

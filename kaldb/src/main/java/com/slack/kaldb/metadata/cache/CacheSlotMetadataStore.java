@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.JdkFutureAdapters;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.slack.kaldb.metadata.core.KaldbPartitioningMetadataStore;
 import com.slack.kaldb.proto.metadata.Metadata;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import org.apache.curator.x.async.AsyncCuratorFramework;
 import org.apache.zookeeper.CreateMode;
@@ -15,12 +16,14 @@ public class CacheSlotMetadataStore extends KaldbPartitioningMetadataStore<Cache
    * Initializes a cache slot metadata store at the CACHE_SLOT_ZK_PATH. This should be used to
    * create/update the cache slots, and for listening to all cache slot events.
    */
-  public CacheSlotMetadataStore(AsyncCuratorFramework curatorFramework) throws Exception {
+  public CacheSlotMetadataStore(AsyncCuratorFramework curatorFramework, MeterRegistry meterRegistry)
+      throws Exception {
     super(
         curatorFramework,
         CreateMode.EPHEMERAL,
         new CacheSlotMetadataSerializer().toModelSerializer(),
-        CACHE_SLOT_ZK_PATH);
+        CACHE_SLOT_ZK_PATH,
+        meterRegistry);
   }
 
   /** Update the cache slot state, if the slot is not FREE. */

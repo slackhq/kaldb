@@ -45,7 +45,7 @@ public class SearchMetadataStoreTest {
 
   @Test
   public void testSearchMetadataStoreIsNotUpdatable() throws Exception {
-    store = new SearchMetadataStore(curatorFramework, true);
+    store = new SearchMetadataStore(curatorFramework, true, meterRegistry);
     SearchMetadata searchMetadata = new SearchMetadata("test", "snapshot", "http");
     Throwable exAsync = catchThrowable(() -> store.updateAsync(searchMetadata));
     assertThat(exAsync).isInstanceOf(UnsupportedOperationException.class);

@@ -47,11 +47,12 @@ public class CacheSlotMetadataStoreTest {
             .setSleepBetweenRetriesMs(500)
             .build();
     this.curatorFramework = CuratorBuilder.build(meterRegistry, zookeeperConfig);
-    this.store = new CacheSlotMetadataStore(curatorFramework);
+    this.store = new CacheSlotMetadataStore(curatorFramework, meterRegistry);
   }
 
   @AfterEach
   public void tearDown() throws IOException {
+    store.close();
     curatorFramework.unwrap().close();
     testingServer.close();
     meterRegistry.close();

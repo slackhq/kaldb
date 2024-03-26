@@ -139,8 +139,8 @@ public class IndexingChunkManagerTest {
             .build();
 
     curatorFramework = CuratorBuilder.build(metricsRegistry, zkConfig);
-    snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-    searchMetadataStore = new SearchMetadataStore(curatorFramework, false);
+    snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework, metricsRegistry);
+    searchMetadataStore = new SearchMetadataStore(curatorFramework, false, metricsRegistry);
   }
 
   @AfterEach
@@ -1269,8 +1269,10 @@ public class IndexingChunkManagerTest {
     assertThat(rollOverFuture.isDone()).isTrue();
 
     // The stores are closed so temporarily re-create them so we can query the data in ZK.
-    SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, false);
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
+    SearchMetadataStore searchMetadataStore =
+        new SearchMetadataStore(curatorFramework, false, metricsRegistry);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, metricsRegistry);
     assertThat(KaldbMetadataTestUtils.listSyncUncached(searchMetadataStore)).isEmpty();
     List<SnapshotMetadata> snapshots =
         KaldbMetadataTestUtils.listSyncUncached(snapshotMetadataStore);
@@ -1321,8 +1323,10 @@ public class IndexingChunkManagerTest {
 
     // The stores are closed so temporarily re-create them so we can query the data in ZK.
     // All ephemeral data is ZK is deleted and no data or metadata is persisted.
-    SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, false);
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
+    SearchMetadataStore searchMetadataStore =
+        new SearchMetadataStore(curatorFramework, false, metricsRegistry);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, metricsRegistry);
     assertThat(KaldbMetadataTestUtils.listSyncUncached(searchMetadataStore)).isEmpty();
     assertThat(KaldbMetadataTestUtils.listSyncUncached(snapshotMetadataStore)).isEmpty();
     searchMetadataStore.close();

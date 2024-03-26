@@ -73,11 +73,14 @@ public class CuratorBuilder {
                   && curatorEvent.getWatchedEvent().getState()
                       == Watcher.Event.KeeperState.Expired) {
                 LOG.warn("The ZK session has expired {}.", curatorEvent);
-                new RuntimeHalterImpl().handleFatal(new Throwable("ZK session expired."));
+
+                if (!KaldbMetadataStore.persistentEphemeralModeEnabled()) {
+                  new RuntimeHalterImpl().handleFatal(new Throwable("ZK session expired."));
+                }
               }
             });
-    curator.start();
 
+    curator.start();
     LOG.info(
         "Started curator server with the following config zkhost: {}, path prefix: {}, "
             + "connection timeout ms: {}, session timeout ms {} and retry policy {}",

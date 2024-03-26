@@ -77,9 +77,9 @@ public class ManagerApiGrpcTest {
             .build();
 
     curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    datasetMetadataStore = spy(new DatasetMetadataStore(curatorFramework, true));
-    snapshotMetadataStore = spy(new SnapshotMetadataStore(curatorFramework));
-    replicaMetadataStore = spy(new ReplicaMetadataStore(curatorFramework));
+    datasetMetadataStore = spy(new DatasetMetadataStore(curatorFramework, true, meterRegistry));
+    snapshotMetadataStore = spy(new SnapshotMetadataStore(curatorFramework, meterRegistry));
+    replicaMetadataStore = spy(new ReplicaMetadataStore(curatorFramework, meterRegistry));
 
     KaldbConfigs.ManagerConfig.ReplicaRestoreServiceConfig replicaRecreationServiceConfig =
         KaldbConfigs.ManagerConfig.ReplicaRestoreServiceConfig.newBuilder()

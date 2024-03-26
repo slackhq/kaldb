@@ -68,8 +68,8 @@ public class ReplicaCreationServiceTest {
             .build();
 
     curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    snapshotMetadataStore = spy(new SnapshotMetadataStore(curatorFramework));
-    replicaMetadataStore = spy(new ReplicaMetadataStore(curatorFramework));
+    snapshotMetadataStore = spy(new SnapshotMetadataStore(curatorFramework, meterRegistry));
+    replicaMetadataStore = spy(new ReplicaMetadataStore(curatorFramework, meterRegistry));
   }
 
   @AfterEach
@@ -84,8 +84,10 @@ public class ReplicaCreationServiceTest {
 
   @Test
   public void shouldDoNothingIfReplicasAlreadyExist() throws Exception {
-    ReplicaMetadataStore replicaMetadataStore = new ReplicaMetadataStore(curatorFramework);
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
+    ReplicaMetadataStore replicaMetadataStore =
+        new ReplicaMetadataStore(curatorFramework, meterRegistry);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, meterRegistry);
 
     SnapshotMetadata snapshotA =
         new SnapshotMetadata(

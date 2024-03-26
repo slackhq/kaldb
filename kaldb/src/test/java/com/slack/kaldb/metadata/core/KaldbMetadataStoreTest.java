@@ -3,27 +3,35 @@ package com.slack.kaldb.metadata.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.slack.kaldb.proto.config.KaldbConfigs;
+import com.slack.kaldb.testlib.MetricsUtil;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.curator.RetryPolicy;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.test.TestingServer;
 import org.apache.curator.x.async.AsyncCuratorFramework;
 import org.apache.curator.x.async.modeled.JacksonModelSerializer;
 import org.apache.curator.x.async.modeled.ModelSerializer;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class KaldbMetadataStoreTest {
-
   private TestingServer testingServer;
   private MeterRegistry meterRegistry;
 
@@ -42,7 +50,7 @@ public class KaldbMetadataStoreTest {
         KaldbConfigs.ZookeeperConfig.newBuilder()
             .setZkConnectString(testingServer.getConnectString())
             .setZkPathPrefix("Test")
-            .setZkSessionTimeoutMs(10000)
+            .setZkSessionTimeoutMs(2500)
             .setZkConnectionTimeoutMs(1000)
             .setSleepBetweenRetriesMs(500)
             .build();
@@ -54,6 +62,9 @@ public class KaldbMetadataStoreTest {
     curatorFramework.unwrap().close();
     testingServer.close();
     meterRegistry.close();
+
+    // clear any overrides
+    System.clearProperty(KaldbMetadataStore.PERSISTENT_EPHEMERAL_PROPERTY);
   }
 
   private static class TestMetadata extends KaldbMetadata {
@@ -103,7 +114,8 @@ public class KaldbMetadataStoreTest {
             CreateMode.PERSISTENT,
             true,
             new JacksonModelSerializer<>(TestMetadata.class),
-            STORE_FOLDER);
+            STORE_FOLDER,
+            meterRegistry);
       }
     }
 
@@ -160,7 +172,8 @@ public class KaldbMetadataStoreTest {
             CreateMode.PERSISTENT,
             true,
             new JacksonModelSerializer<>(TestMetadata.class),
-            STORE_FOLDER);
+            STORE_FOLDER,
+            meterRegistry);
       }
     }
 
@@ -181,7 +194,8 @@ public class KaldbMetadataStoreTest {
             CreateMode.PERSISTENT,
             false,
             new JacksonModelSerializer<>(TestMetadata.class),
-            STORE_FOLDER);
+            STORE_FOLDER,
+            meterRegistry);
       }
     }
 
@@ -215,7 +229,8 @@ public class KaldbMetadataStoreTest {
             CreateMode.PERSISTENT,
             false,
             new JacksonModelSerializer<>(TestMetadata.class),
-            "/persistent");
+            "/persistent",
+            meterRegistry);
       }
     }
 
@@ -226,7 +241,8 @@ public class KaldbMetadataStoreTest {
             CreateMode.EPHEMERAL,
             false,
             new JacksonModelSerializer<>(TestMetadata.class),
-            "/ephemeral");
+            "/ephemeral",
+            meterRegistry);
       }
     }
 
@@ -266,7 +282,6 @@ public class KaldbMetadataStoreTest {
   }
 
   @Test
-  @Disabled("ZK reconnect support currently disabled")
   public void testListenersWithZkReconnect() throws Exception {
     class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
       public TestMetadataStore() {
@@ -275,7 +290,8 @@ public class KaldbMetadataStoreTest {
             CreateMode.PERSISTENT,
             true,
             new JacksonModelSerializer<>(TestMetadata.class),
-            STORE_FOLDER);
+            STORE_FOLDER,
+            meterRegistry);
       }
     }
 
@@ -314,7 +330,8 @@ public class KaldbMetadataStoreTest {
             CreateMode.PERSISTENT,
             true,
             new JacksonModelSerializer<>(TestMetadata.class),
-            STORE_FOLDER);
+            STORE_FOLDER,
+            meterRegistry);
       }
     }
 
@@ -374,7 +391,12 @@ public class KaldbMetadataStoreTest {
     class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
       public TestMetadataStore() {
         super(
-            curatorFramework, CreateMode.PERSISTENT, true, new CountingSerializer(), STORE_FOLDER);
+            curatorFramework,
+            CreateMode.PERSISTENT,
+            true,
+            new CountingSerializer(),
+            STORE_FOLDER,
+            meterRegistry);
       }
     }
 
@@ -404,7 +426,8 @@ public class KaldbMetadataStoreTest {
             CreateMode.PERSISTENT,
             true,
             new JacksonModelSerializer<>(TestMetadata.class),
-            STORE_FOLDER);
+            STORE_FOLDER,
+            meterRegistry);
       }
     }
 
@@ -430,7 +453,13 @@ public class KaldbMetadataStoreTest {
 
     class SlowMetadataStore extends KaldbMetadataStore<TestMetadata> {
       public SlowMetadataStore() {
-        super(curatorFramework, CreateMode.PERSISTENT, true, new SlowSerializer(), STORE_FOLDER);
+        super(
+            curatorFramework,
+            CreateMode.PERSISTENT,
+            true,
+            new SlowSerializer(),
+            STORE_FOLDER,
+            meterRegistry);
       }
     }
 
@@ -445,5 +474,420 @@ public class KaldbMetadataStoreTest {
       List<TestMetadata> metadata = init.listSync();
       assertThat(metadata.size()).isEqualTo(testMetadataInitCount);
     }
+  }
+
+  @Test
+  public void testUncachedEphemeralNodesWithZkReconnect() throws Exception {
+    System.setProperty(KaldbMetadataStore.PERSISTENT_EPHEMERAL_PROPERTY, "true");
+    RetryPolicy retryPolicy = new RetryNTimes(1, 10);
+    CuratorFramework curator =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(
+                50) // this will be negotiated to a higher value, due to minSessionTimeout
+            .retryPolicy(retryPolicy)
+            .build();
+    curator.start();
+    AsyncCuratorFramework asyncCuratorFramework = AsyncCuratorFramework.wrap(curator);
+
+    class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
+      public TestMetadataStore() {
+        super(
+            asyncCuratorFramework,
+            CreateMode.EPHEMERAL,
+            false,
+            new JacksonModelSerializer<>(TestMetadata.class),
+            STORE_FOLDER,
+            meterRegistry);
+      }
+    }
+
+    try (KaldbMetadataStore<TestMetadata> store = new TestMetadataStore()) {
+      // create metadata
+      TestMetadata metadata1 = new TestMetadata("foo", "val1");
+      store.createSync(metadata1);
+      long initialSession = curator.getZookeeperClient().getZooKeeper().getSessionId();
+      AtomicReference<Stat> beforeStat = new AtomicReference<>();
+      await()
+          .until(
+              () -> {
+                beforeStat.set(store.hasAsync(metadata1.name).toCompletableFuture().get());
+                return beforeStat.get() != null;
+              });
+
+      testingServer.stop();
+      testingServer.restart();
+
+      Thread.sleep(curator.getZookeeperClient().getLastNegotiatedSessionTimeoutMs() + 1000);
+      assertThat(curator.getZookeeperClient().getZooKeeper().getSessionId())
+          .isNotEqualTo(initialSession);
+
+      assertThat(store.getSync(metadata1.name)).isEqualTo(metadata1);
+      await()
+          .until(
+              () ->
+                  MetricsUtil.getCount(
+                          PersistentWatchedNode.PERSISTENT_NODE_RECREATED_COUNTER, meterRegistry)
+                      >= 1);
+
+      Stat afterStat = store.hasAsync(metadata1.name).toCompletableFuture().get();
+      assertNotNull(beforeStat);
+      assertNotNull(afterStat);
+      assertThat(beforeStat.get()).isNotEqualTo(afterStat);
+      metadata1.setValue("val2");
+      store.updateSync(metadata1);
+
+      store.deleteSync(metadata1.name);
+    }
+
+    curator.close();
+  }
+
+  @Test
+  public void testCachedEphemeralNodesWithZkReconnect() throws Exception {
+    System.setProperty(KaldbMetadataStore.PERSISTENT_EPHEMERAL_PROPERTY, "true");
+    RetryPolicy retryPolicy = new RetryNTimes(1, 10);
+    CuratorFramework curator =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator.start();
+    AsyncCuratorFramework asyncCuratorFramework = AsyncCuratorFramework.wrap(curator);
+
+    class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
+      public TestMetadataStore() {
+        super(
+            asyncCuratorFramework,
+            CreateMode.EPHEMERAL,
+            true,
+            new JacksonModelSerializer<>(TestMetadata.class),
+            STORE_FOLDER,
+            meterRegistry);
+      }
+    }
+
+    try (KaldbMetadataStore<TestMetadata> store = new TestMetadataStore()) {
+      // create metadata
+      TestMetadata metadata1 = new TestMetadata("foo", "val1");
+      store.createSync(metadata1);
+      long initialSession = curator.getZookeeperClient().getZooKeeper().getSessionId();
+      AtomicReference<Stat> beforeStat = new AtomicReference<>();
+      await()
+          .until(
+              () -> {
+                beforeStat.set(store.hasAsync(metadata1.name).toCompletableFuture().get());
+                return beforeStat.get() != null;
+              });
+
+      testingServer.stop();
+      testingServer.restart();
+
+      Thread.sleep(curator.getZookeeperClient().getLastNegotiatedSessionTimeoutMs() + 1000);
+      assertThat(curator.getZookeeperClient().getZooKeeper().getSessionId())
+          .isNotEqualTo(initialSession);
+
+      assertThat(store.getSync(metadata1.name)).isEqualTo(metadata1);
+      await()
+          .until(
+              () ->
+                  MetricsUtil.getCount(
+                          PersistentWatchedNode.PERSISTENT_NODE_RECREATED_COUNTER, meterRegistry)
+                      >= 1);
+
+      Stat afterStat = store.hasAsync(metadata1.name).toCompletableFuture().get();
+      assertNotNull(beforeStat);
+      assertNotNull(afterStat);
+      assertThat(beforeStat.get()).isNotEqualTo(afterStat);
+      metadata1.setValue("val2");
+      store.updateSync(metadata1);
+
+      store.deleteSync(metadata1.name);
+    }
+
+    curator.close();
+  }
+
+  @Test
+  public void testUncachedEphemeralNodesWithZkReconnectDisabledPersistent() throws Exception {
+    System.setProperty(KaldbMetadataStore.PERSISTENT_EPHEMERAL_PROPERTY, "false");
+    RetryPolicy retryPolicy = new RetryNTimes(1, 10);
+    CuratorFramework curator =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator.start();
+    AsyncCuratorFramework asyncCuratorFramework = AsyncCuratorFramework.wrap(curator);
+
+    class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
+      public TestMetadataStore() {
+        super(
+            asyncCuratorFramework,
+            CreateMode.EPHEMERAL,
+            false,
+            new JacksonModelSerializer<>(TestMetadata.class),
+            STORE_FOLDER,
+            meterRegistry);
+      }
+    }
+
+    try (KaldbMetadataStore<TestMetadata> store = new TestMetadataStore()) {
+      // create metadata
+      TestMetadata metadata1 = new TestMetadata("foo", "val1");
+      store.createSync(metadata1);
+      long initialSession = curator.getZookeeperClient().getZooKeeper().getSessionId();
+
+      testingServer.stop();
+      testingServer.restart();
+
+      Thread.sleep(curator.getZookeeperClient().getLastNegotiatedSessionTimeoutMs() + 1000);
+      assertThat(curator.getZookeeperClient().getZooKeeper().getSessionId())
+          .isNotEqualTo(initialSession);
+
+      assertThrows(InternalMetadataStoreException.class, () -> store.getSync(metadata1.name));
+      assertThat(
+              MetricsUtil.getCount(
+                  PersistentWatchedNode.PERSISTENT_NODE_RECREATED_COUNTER, meterRegistry))
+          .isEqualTo(0);
+    }
+
+    curator.close();
+  }
+
+  @Test
+  public void testCachedEphemeralNodesWithZkReconnectDisabledPersistent() throws Exception {
+    System.setProperty(KaldbMetadataStore.PERSISTENT_EPHEMERAL_PROPERTY, "false");
+    RetryPolicy retryPolicy = new RetryNTimes(1, 10);
+    CuratorFramework curator =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator.start();
+    AsyncCuratorFramework asyncCuratorFramework = AsyncCuratorFramework.wrap(curator);
+
+    class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
+      public TestMetadataStore() {
+        super(
+            asyncCuratorFramework,
+            CreateMode.EPHEMERAL,
+            true,
+            new JacksonModelSerializer<>(TestMetadata.class),
+            STORE_FOLDER,
+            meterRegistry);
+      }
+    }
+
+    try (KaldbMetadataStore<TestMetadata> store = new TestMetadataStore()) {
+      // create metadata
+      TestMetadata metadata1 = new TestMetadata("foo", "val1");
+      store.createSync(metadata1);
+      long initialSession = curator.getZookeeperClient().getZooKeeper().getSessionId();
+
+      testingServer.stop();
+      testingServer.restart();
+
+      Thread.sleep(curator.getZookeeperClient().getLastNegotiatedSessionTimeoutMs() + 1000);
+      assertThat(curator.getZookeeperClient().getZooKeeper().getSessionId())
+          .isNotEqualTo(initialSession);
+
+      assertThrows(InternalMetadataStoreException.class, () -> store.getSync(metadata1.name));
+      assertThat(
+              MetricsUtil.getCount(
+                  PersistentWatchedNode.PERSISTENT_NODE_RECREATED_COUNTER, meterRegistry))
+          .isEqualTo(0);
+    }
+
+    curator.close();
+  }
+
+  @Test
+  public void testWhenPersistentEphemeralIsUpdatedByAnotherCurator() {
+    System.setProperty(KaldbMetadataStore.PERSISTENT_EPHEMERAL_PROPERTY, "true");
+    RetryPolicy retryPolicy = new RetryNTimes(1, 10);
+    CuratorFramework curator1 =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator1.start();
+    AsyncCuratorFramework asyncCuratorFramework1 = AsyncCuratorFramework.wrap(curator1);
+
+    CuratorFramework curator2 =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator2.start();
+    AsyncCuratorFramework asyncCuratorFramework2 = AsyncCuratorFramework.wrap(curator2);
+
+    class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
+      public TestMetadataStore(AsyncCuratorFramework curator) {
+        super(
+            curator,
+            CreateMode.EPHEMERAL,
+            true,
+            new JacksonModelSerializer<>(TestMetadata.class),
+            STORE_FOLDER,
+            meterRegistry);
+      }
+    }
+
+    TestMetadata metadata1 = new TestMetadata("foo", "val1");
+    try (KaldbMetadataStore<TestMetadata> store1 = new TestMetadataStore(asyncCuratorFramework1)) {
+      store1.createSync(metadata1);
+
+      try (KaldbMetadataStore<TestMetadata> store2 =
+          new TestMetadataStore(asyncCuratorFramework2)) {
+        // curator2 updates the value
+        TestMetadata metadata2 = store2.getSync(metadata1.name);
+        metadata2.value = "val2";
+        store2.updateSync(metadata2);
+      }
+
+      // curator1 should pickup the new update
+      await().until(() -> store1.getSync(metadata1.name).getValue().equals("val2"));
+      assertThat(store1.hasSync(metadata1.name)).isTrue();
+    }
+
+    curator2.close();
+    curator1.close();
+  }
+
+  @Test
+  public void testDoubleCreateEphemeral() {
+    System.setProperty(KaldbMetadataStore.PERSISTENT_EPHEMERAL_PROPERTY, "true");
+    RetryPolicy retryPolicy = new RetryNTimes(1, 10);
+    CuratorFramework curator1 =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator1.start();
+    AsyncCuratorFramework asyncCuratorFramework1 = AsyncCuratorFramework.wrap(curator1);
+
+    CuratorFramework curator2 =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator2.start();
+    AsyncCuratorFramework asyncCuratorFramework2 = AsyncCuratorFramework.wrap(curator2);
+
+    class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
+      public TestMetadataStore(AsyncCuratorFramework curator) {
+        super(
+            curator,
+            CreateMode.EPHEMERAL,
+            true,
+            new JacksonModelSerializer<>(TestMetadata.class),
+            STORE_FOLDER,
+            meterRegistry);
+      }
+    }
+    TestMetadata testMetadata = new TestMetadata("foo", "vbr");
+    try (KaldbMetadataStore<TestMetadata> store1 = new TestMetadataStore(asyncCuratorFramework1)) {
+      store1.createSync(testMetadata);
+      assertThrows(InternalMetadataStoreException.class, () -> store1.createSync(testMetadata));
+
+      try (KaldbMetadataStore<TestMetadata> store2 =
+          new TestMetadataStore(asyncCuratorFramework2)) {
+        assertThrows(InternalMetadataStoreException.class, () -> store2.createSync(testMetadata));
+      }
+    }
+
+    curator2.close();
+    curator1.close();
+  }
+
+  @Test
+  public void testWhenPersistentEphemeralIsUpdatedByAnotherCuratorWhileAway() throws Exception {
+    System.setProperty(KaldbMetadataStore.PERSISTENT_EPHEMERAL_PROPERTY, "true");
+    RetryPolicy retryPolicy = new RetryNTimes(1, 10);
+    CuratorFramework curator1 =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator1.start();
+    AsyncCuratorFramework asyncCuratorFramework1 = AsyncCuratorFramework.wrap(curator1);
+
+    CuratorFramework curator2 =
+        CuratorFrameworkFactory.builder()
+            .connectString(zookeeperConfig.getZkConnectString())
+            .namespace(zookeeperConfig.getZkPathPrefix())
+            .connectionTimeoutMs(50)
+            .sessionTimeoutMs(50)
+            .retryPolicy(retryPolicy)
+            .build();
+    curator2.start();
+    AsyncCuratorFramework asyncCuratorFramework2 = AsyncCuratorFramework.wrap(curator2);
+
+    class TestMetadataStore extends KaldbMetadataStore<TestMetadata> {
+      public TestMetadataStore(AsyncCuratorFramework curator) {
+        super(
+            curator,
+            CreateMode.EPHEMERAL,
+            true,
+            new JacksonModelSerializer<>(TestMetadata.class),
+            STORE_FOLDER,
+            meterRegistry);
+      }
+    }
+
+    TestMetadata metadata1 = new TestMetadata("foo", "val1");
+    try (KaldbMetadataStore<TestMetadata> store1 = new TestMetadataStore(asyncCuratorFramework1)) {
+      store1.createSync(metadata1);
+
+      long sessionId1 = curator1.getZookeeperClient().getZooKeeper().getSessionId();
+      try (KaldbMetadataStore<TestMetadata> store2 =
+          new TestMetadataStore(asyncCuratorFramework2)) {
+        // curator2 updates the value
+        TestMetadata metadata2 = store2.getSync(metadata1.name);
+        metadata2.value = "val2";
+
+        // force a ZK session close
+        curator1.getZookeeperClient().getZooKeeper().close();
+        assertThrows(InternalMetadataStoreException.class, () -> store2.updateSync(metadata2));
+      }
+
+      await()
+          .atMost(30, TimeUnit.SECONDS)
+          .until(() -> curator1.getZookeeperClient().getZooKeeper().getSessionId() != sessionId1);
+
+      // wait until the node shows back up on ZK
+      await().until(() -> store1.hasSync(metadata1.name));
+      assertThat(store1.getSync(metadata1.name).getValue()).isEqualTo("val1");
+    }
+
+    curator2.close();
+    curator1.close();
   }
 }

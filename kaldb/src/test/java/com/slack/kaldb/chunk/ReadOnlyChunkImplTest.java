@@ -110,10 +110,14 @@ public class ReadOnlyChunkImplTest {
             .build();
 
     AsyncCuratorFramework curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    ReplicaMetadataStore replicaMetadataStore = new ReplicaMetadataStore(curatorFramework);
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-    SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
-    CacheSlotMetadataStore cacheSlotMetadataStore = new CacheSlotMetadataStore(curatorFramework);
+    ReplicaMetadataStore replicaMetadataStore =
+        new ReplicaMetadataStore(curatorFramework, meterRegistry);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, meterRegistry);
+    SearchMetadataStore searchMetadataStore =
+        new SearchMetadataStore(curatorFramework, true, meterRegistry);
+    CacheSlotMetadataStore cacheSlotMetadataStore =
+        new CacheSlotMetadataStore(curatorFramework, meterRegistry);
 
     String replicaId = "foo";
     String snapshotId = "bar";
@@ -150,8 +154,11 @@ public class ReadOnlyChunkImplTest {
 
     // ensure that the chunk was marked LIVE
     await().until(() -> KaldbMetadataTestUtils.listSyncUncached(searchMetadataStore).size() == 1);
-    assertThat(readOnlyChunk.getChunkMetadataState())
-        .isEqualTo(Metadata.CacheSlotMetadata.CacheSlotState.LIVE);
+    await()
+        .until(
+            () ->
+                readOnlyChunk.getChunkMetadataState()
+                    == Metadata.CacheSlotMetadata.CacheSlotState.LIVE);
 
     SearchResult<LogMessage> logMessageSearchResult =
         readOnlyChunk.query(
@@ -227,6 +234,10 @@ public class ReadOnlyChunkImplTest {
     assertThat(meterRegistry.get(CHUNK_ASSIGNMENT_TIMER).tag("successful", "false").timer().count())
         .isEqualTo(0);
 
+    cacheSlotMetadataStore.close();
+    searchMetadataStore.close();
+    snapshotMetadataStore.close();
+    replicaMetadataStore.close();
     curatorFramework.unwrap().close();
   }
 
@@ -243,10 +254,14 @@ public class ReadOnlyChunkImplTest {
             .build();
 
     AsyncCuratorFramework curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    ReplicaMetadataStore replicaMetadataStore = new ReplicaMetadataStore(curatorFramework);
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-    SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
-    CacheSlotMetadataStore cacheSlotMetadataStore = new CacheSlotMetadataStore(curatorFramework);
+    ReplicaMetadataStore replicaMetadataStore =
+        new ReplicaMetadataStore(curatorFramework, meterRegistry);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, meterRegistry);
+    SearchMetadataStore searchMetadataStore =
+        new SearchMetadataStore(curatorFramework, true, meterRegistry);
+    CacheSlotMetadataStore cacheSlotMetadataStore =
+        new CacheSlotMetadataStore(curatorFramework, meterRegistry);
 
     String replicaId = "foo";
     String snapshotId = "bar";
@@ -293,6 +308,10 @@ public class ReadOnlyChunkImplTest {
     assertThat(meterRegistry.get(CHUNK_ASSIGNMENT_TIMER).tag("successful", "false").timer().count())
         .isEqualTo(1);
 
+    cacheSlotMetadataStore.close();
+    searchMetadataStore.close();
+    snapshotMetadataStore.close();
+    replicaMetadataStore.close();
     curatorFramework.unwrap().close();
   }
 
@@ -309,10 +328,14 @@ public class ReadOnlyChunkImplTest {
             .build();
 
     AsyncCuratorFramework curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    ReplicaMetadataStore replicaMetadataStore = new ReplicaMetadataStore(curatorFramework);
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-    SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
-    CacheSlotMetadataStore cacheSlotMetadataStore = new CacheSlotMetadataStore(curatorFramework);
+    ReplicaMetadataStore replicaMetadataStore =
+        new ReplicaMetadataStore(curatorFramework, meterRegistry);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, meterRegistry);
+    SearchMetadataStore searchMetadataStore =
+        new SearchMetadataStore(curatorFramework, true, meterRegistry);
+    CacheSlotMetadataStore cacheSlotMetadataStore =
+        new CacheSlotMetadataStore(curatorFramework, meterRegistry);
 
     String replicaId = "foo";
     String snapshotId = "bar";
@@ -359,6 +382,10 @@ public class ReadOnlyChunkImplTest {
     assertThat(meterRegistry.get(CHUNK_ASSIGNMENT_TIMER).tag("successful", "false").timer().count())
         .isEqualTo(1);
 
+    cacheSlotMetadataStore.close();
+    searchMetadataStore.close();
+    snapshotMetadataStore.close();
+    replicaMetadataStore.close();
     curatorFramework.unwrap().close();
   }
 
@@ -375,10 +402,14 @@ public class ReadOnlyChunkImplTest {
             .build();
 
     AsyncCuratorFramework curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
-    ReplicaMetadataStore replicaMetadataStore = new ReplicaMetadataStore(curatorFramework);
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-    SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
-    CacheSlotMetadataStore cacheSlotMetadataStore = new CacheSlotMetadataStore(curatorFramework);
+    ReplicaMetadataStore replicaMetadataStore =
+        new ReplicaMetadataStore(curatorFramework, meterRegistry);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, meterRegistry);
+    SearchMetadataStore searchMetadataStore =
+        new SearchMetadataStore(curatorFramework, true, meterRegistry);
+    CacheSlotMetadataStore cacheSlotMetadataStore =
+        new CacheSlotMetadataStore(curatorFramework, meterRegistry);
 
     String replicaId = "foo";
     String snapshotId = "bar";
@@ -459,6 +490,10 @@ public class ReadOnlyChunkImplTest {
       assertThat(files.findFirst().isPresent()).isFalse();
     }
 
+    cacheSlotMetadataStore.close();
+    searchMetadataStore.close();
+    snapshotMetadataStore.close();
+    replicaMetadataStore.close();
     curatorFramework.unwrap().close();
   }
 
@@ -502,7 +537,8 @@ public class ReadOnlyChunkImplTest {
 
   private void initializeZkSnapshot(AsyncCuratorFramework curatorFramework, String snapshotId)
       throws Exception {
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, meterRegistry);
     snapshotMetadataStore.createSync(
         new SnapshotMetadata(
             snapshotId,
@@ -517,7 +553,8 @@ public class ReadOnlyChunkImplTest {
   private void initializeZkReplica(
       AsyncCuratorFramework curatorFramework, String replicaId, String snapshotId)
       throws Exception {
-    ReplicaMetadataStore replicaMetadataStore = new ReplicaMetadataStore(curatorFramework);
+    ReplicaMetadataStore replicaMetadataStore =
+        new ReplicaMetadataStore(curatorFramework, meterRegistry);
     replicaMetadataStore.createSync(
         new ReplicaMetadata(
             replicaId,

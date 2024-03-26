@@ -56,9 +56,9 @@ class ClusterHpaMetricServiceTest {
 
     curatorFramework = CuratorBuilder.build(meterRegistry, zkConfig);
 
-    replicaMetadataStore = spy(new ReplicaMetadataStore(curatorFramework));
-    cacheSlotMetadataStore = spy(new CacheSlotMetadataStore(curatorFramework));
-    hpaMetricMetadataStore = spy(new HpaMetricMetadataStore(curatorFramework, true));
+    replicaMetadataStore = spy(new ReplicaMetadataStore(curatorFramework, meterRegistry));
+    cacheSlotMetadataStore = spy(new CacheSlotMetadataStore(curatorFramework, meterRegistry));
+    hpaMetricMetadataStore = spy(new HpaMetricMetadataStore(curatorFramework, true, meterRegistry));
   }
 
   @AfterEach

@@ -89,9 +89,9 @@ public class KaldbDistributedQueryServiceTest {
 
     curatorFramework = spy(CuratorBuilder.build(metricsRegistry, zkConfig));
 
-    snapshotMetadataStore = spy(new SnapshotMetadataStore(curatorFramework));
-    searchMetadataStore = spy(new SearchMetadataStore(curatorFramework, true));
-    datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+    snapshotMetadataStore = spy(new SnapshotMetadataStore(curatorFramework, metricsRegistry));
+    searchMetadataStore = spy(new SearchMetadataStore(curatorFramework, true, metricsRegistry));
+    datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true, metricsRegistry);
 
     indexer1SearchContext = new SearchContext("indexer_host1", 10000);
     indexer2SearchContext = new SearchContext("indexer_host2", 10001);

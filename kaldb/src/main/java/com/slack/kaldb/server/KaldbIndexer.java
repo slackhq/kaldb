@@ -88,9 +88,10 @@ public class KaldbIndexer extends AbstractExecutionThreadService {
    */
   private long indexerPreStart() throws Exception {
     LOG.info("Starting Kaldb indexer pre start.");
-    SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
+    SnapshotMetadataStore snapshotMetadataStore =
+        new SnapshotMetadataStore(curatorFramework, meterRegistry);
     RecoveryTaskMetadataStore recoveryTaskMetadataStore =
-        new RecoveryTaskMetadataStore(curatorFramework, true);
+        new RecoveryTaskMetadataStore(curatorFramework, true, meterRegistry);
 
     String partitionId = kafkaConfig.getKafkaTopicPartition();
     long maxOffsetDelay = indexerConfig.getMaxOffsetDelayMessages();

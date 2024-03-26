@@ -59,10 +59,10 @@ public class CachingChunkManager<T> extends ChunkManagerBase<T> {
   protected void startUp() throws Exception {
     LOG.info("Starting caching chunk manager");
 
-    replicaMetadataStore = new ReplicaMetadataStore(curatorFramework);
-    snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-    searchMetadataStore = new SearchMetadataStore(curatorFramework, false);
-    cacheSlotMetadataStore = new CacheSlotMetadataStore(curatorFramework);
+    replicaMetadataStore = new ReplicaMetadataStore(curatorFramework, meterRegistry);
+    snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework, meterRegistry);
+    searchMetadataStore = new SearchMetadataStore(curatorFramework, false, meterRegistry);
+    cacheSlotMetadataStore = new CacheSlotMetadataStore(curatorFramework, meterRegistry);
 
     for (int i = 0; i < slotCountPerInstance; i++) {
       chunkList.add(

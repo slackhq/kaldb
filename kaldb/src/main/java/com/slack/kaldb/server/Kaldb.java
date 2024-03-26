@@ -194,9 +194,12 @@ public class Kaldb {
     }
 
     if (roles.contains(KaldbConfigs.NodeRole.QUERY)) {
-      SearchMetadataStore searchMetadataStore = new SearchMetadataStore(curatorFramework, true);
-      SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
-      DatasetMetadataStore datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+      SearchMetadataStore searchMetadataStore =
+          new SearchMetadataStore(curatorFramework, true, meterRegistry);
+      SnapshotMetadataStore snapshotMetadataStore =
+          new SnapshotMetadataStore(curatorFramework, meterRegistry);
+      DatasetMetadataStore datasetMetadataStore =
+          new DatasetMetadataStore(curatorFramework, true, meterRegistry);
 
       services.add(
           new CloseableLifecycleManager(
@@ -239,7 +242,7 @@ public class Kaldb {
       services.add(chunkManager);
 
       HpaMetricMetadataStore hpaMetricMetadataStore =
-          new HpaMetricMetadataStore(curatorFramework, true);
+          new HpaMetricMetadataStore(curatorFramework, true, meterRegistry);
       services.add(
           new CloseableLifecycleManager(
               KaldbConfigs.NodeRole.CACHE, List.of(hpaMetricMetadataStore)));
@@ -268,16 +271,20 @@ public class Kaldb {
       final KaldbConfigs.ManagerConfig managerConfig = kaldbConfig.getManagerConfig();
       final int serverPort = managerConfig.getServerConfig().getServerPort();
 
-      ReplicaMetadataStore replicaMetadataStore = new ReplicaMetadataStore(curatorFramework);
-      SnapshotMetadataStore snapshotMetadataStore = new SnapshotMetadataStore(curatorFramework);
+      ReplicaMetadataStore replicaMetadataStore =
+          new ReplicaMetadataStore(curatorFramework, meterRegistry);
+      SnapshotMetadataStore snapshotMetadataStore =
+          new SnapshotMetadataStore(curatorFramework, meterRegistry);
       RecoveryTaskMetadataStore recoveryTaskMetadataStore =
-          new RecoveryTaskMetadataStore(curatorFramework, true);
+          new RecoveryTaskMetadataStore(curatorFramework, true, meterRegistry);
       RecoveryNodeMetadataStore recoveryNodeMetadataStore =
-          new RecoveryNodeMetadataStore(curatorFramework, true);
-      CacheSlotMetadataStore cacheSlotMetadataStore = new CacheSlotMetadataStore(curatorFramework);
-      DatasetMetadataStore datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+          new RecoveryNodeMetadataStore(curatorFramework, true, meterRegistry);
+      CacheSlotMetadataStore cacheSlotMetadataStore =
+          new CacheSlotMetadataStore(curatorFramework, meterRegistry);
+      DatasetMetadataStore datasetMetadataStore =
+          new DatasetMetadataStore(curatorFramework, true, meterRegistry);
       HpaMetricMetadataStore hpaMetricMetadataStore =
-          new HpaMetricMetadataStore(curatorFramework, true);
+          new HpaMetricMetadataStore(curatorFramework, true, meterRegistry);
 
       Duration requestTimeout =
           Duration.ofMillis(kaldbConfig.getManagerConfig().getServerConfig().getRequestTimeoutMs());
@@ -374,7 +381,8 @@ public class Kaldb {
     }
 
     if (roles.contains(KaldbConfigs.NodeRole.PREPROCESSOR)) {
-      DatasetMetadataStore datasetMetadataStore = new DatasetMetadataStore(curatorFramework, true);
+      DatasetMetadataStore datasetMetadataStore =
+          new DatasetMetadataStore(curatorFramework, true, meterRegistry);
 
       final KaldbConfigs.PreprocessorConfig preprocessorConfig =
           kaldbConfig.getPreprocessorConfig();
