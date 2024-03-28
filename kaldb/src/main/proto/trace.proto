@@ -10,25 +10,8 @@ option go_package = "com.slack/kaldb/gen/proto/tracepb";
 import "google/protobuf/empty.proto";
 import "schema.proto";
 
-// The KeyValue message defines a key and value pair.
-// The key is always a string. The value for the field is determined by the ValueType.
-// If the ValueType is STRING the field v_str should be set, for BOOL v_bool is used etc..
-// Only the type of valueType is used. Rest of the fields are ignored even if they are set.
-// So, of v_type is ValueType.STRING, only the value v_str is used. Rest of the fields are ignored.
-// We chose not to use OneOf field, since it's JSON encoding is not as straight forward.
-enum ValueType {
-  STRING  = 0;
-  BOOL    = 1;
-  INT64   = 2;
-  FLOAT64 = 3;
-  BINARY  = 4;
-  INT32   = 5;
-  FLOAT32 = 6;
-};
-
 message KeyValue {
   string    key       = 1;
-  ValueType v_type    = 2;
   string    v_str     = 3;
   bool      v_bool    = 4;
   int64     v_int64   = 5;

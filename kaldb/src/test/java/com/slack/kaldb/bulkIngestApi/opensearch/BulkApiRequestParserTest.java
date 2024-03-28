@@ -21,7 +21,7 @@ import org.opensearch.ingest.IngestDocument;
 
 public class BulkApiRequestParserTest {
 
-  private byte[] getRawQueryBytes(String filename) throws IOException {
+  public static byte[] getIndexRequestBytes(String filename) throws IOException {
     return Resources.toString(
             Resources.getResource(String.format("opensearchRequest/bulk/%s.ndjson", filename)),
             Charset.defaultCharset())
@@ -30,7 +30,7 @@ public class BulkApiRequestParserTest {
 
   @Test
   public void testSimpleIndexRequest() throws Exception {
-    byte[] rawRequest = getRawQueryBytes("index_simple_with_ts");
+    byte[] rawRequest = getIndexRequestBytes("index_simple_with_ts");
 
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
     assertThat(indexRequests.size()).isEqualTo(1);
@@ -59,7 +59,7 @@ public class BulkApiRequestParserTest {
 
   @Test
   public void testIndexNoFields() throws Exception {
-    byte[] rawRequest = getRawQueryBytes("index_no_fields");
+    byte[] rawRequest = getIndexRequestBytes("index_no_fields");
 
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
 
@@ -83,7 +83,7 @@ public class BulkApiRequestParserTest {
 
   @Test
   public void testIndexNoFieldsNoId() throws Exception {
-    byte[] rawRequest = getRawQueryBytes("index_no_fields_no_id");
+    byte[] rawRequest = getIndexRequestBytes("index_no_fields_no_id");
 
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
 
@@ -107,7 +107,7 @@ public class BulkApiRequestParserTest {
 
   @Test
   public void testIndexEmptyRequest() throws Exception {
-    byte[] rawRequest = getRawQueryBytes("index_empty_request");
+    byte[] rawRequest = getIndexRequestBytes("index_empty_request");
 
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
 
@@ -119,14 +119,14 @@ public class BulkApiRequestParserTest {
 
   @Test
   public void testOtherBulkRequests() throws Exception {
-    byte[] rawRequest = getRawQueryBytes("non_index");
+    byte[] rawRequest = getIndexRequestBytes("non_index");
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
     assertThat(indexRequests.size()).isEqualTo(0);
   }
 
   @Test
   public void testIndexRequestWithSpecialChars() throws Exception {
-    byte[] rawRequest = getRawQueryBytes("index_request_with_special_chars");
+    byte[] rawRequest = getIndexRequestBytes("index_request_with_special_chars");
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
     assertThat(indexRequests.size()).isEqualTo(1);
     Map<String, List<Trace.Span>> indexDocs =
@@ -149,7 +149,7 @@ public class BulkApiRequestParserTest {
 
   @Test
   public void testBulkRequests() throws Exception {
-    byte[] rawRequest = getRawQueryBytes("bulk_requests");
+    byte[] rawRequest = getIndexRequestBytes("bulk_requests");
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
     assertThat(indexRequests.size()).isEqualTo(2);
 
@@ -189,7 +189,7 @@ public class BulkApiRequestParserTest {
 
   @Test
   public void testUpdatesAgainstTwoIndexes() throws Exception {
-    byte[] rawRequest = getRawQueryBytes("two_indexes");
+    byte[] rawRequest = getIndexRequestBytes("two_indexes");
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
     assertThat(indexRequests.size()).isEqualTo(2);
 
@@ -206,7 +206,7 @@ public class BulkApiRequestParserTest {
 
   @Test
   public void testSchemaFieldForTags() throws IOException {
-    byte[] rawRequest = getRawQueryBytes("index_simple");
+    byte[] rawRequest = getIndexRequestBytes("index_simple");
 
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
     assertThat(indexRequests.size()).isEqualTo(1);
@@ -228,14 +228,12 @@ public class BulkApiRequestParserTest {
         span.getTagsList().stream().filter(keyValue -> keyValue.getKey().equals("field1")).toList();
     assertThat(field1Def.size()).isEqualTo(1);
     assertThat(field1Def.getFirst().getVStr()).isEqualTo("value1");
-    assertThat(field1Def.getFirst().getVType()).isEqualTo(Trace.ValueType.STRING);
     assertThat(field1Def.getFirst().getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
 
     field1Def =
         span.getTagsList().stream().filter(keyValue -> keyValue.getKey().equals("field2")).toList();
     assertThat(field1Def.size()).isEqualTo(1);
     assertThat(field1Def.getFirst().getVStr()).isEqualTo("value2");
-    assertThat(field1Def.getFirst().getVType()).isEqualTo(Trace.ValueType.STRING);
     assertThat(field1Def.getFirst().getFieldType()).isEqualTo(Schema.SchemaFieldType.TEXT);
 
     field1Def =
@@ -244,13 +242,12 @@ public class BulkApiRequestParserTest {
             .toList();
     assertThat(field1Def.size()).isEqualTo(1);
     assertThat(field1Def.getFirst().getVStr()).isEqualTo("test");
-    assertThat(field1Def.getFirst().getVType()).isEqualTo(Trace.ValueType.STRING);
     assertThat(field1Def.getFirst().getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
   }
 
   @Test
   public void testTraceSpanGeneratedTimestamp() throws IOException {
-    byte[] rawRequest = getRawQueryBytes("index_simple");
+    byte[] rawRequest = getIndexRequestBytes("index_simple");
 
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
     assertThat(indexRequests.size()).isEqualTo(1);

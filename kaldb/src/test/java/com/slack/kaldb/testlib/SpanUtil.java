@@ -10,6 +10,7 @@ import static com.slack.kaldb.testlib.MessageUtil.TEST_SOURCE_STRING_PROPERTY;
 
 import com.google.protobuf.ByteString;
 import com.slack.kaldb.logstore.LogMessage;
+import com.slack.kaldb.proto.schema.Schema;
 import com.slack.service.murron.trace.Trace;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -66,59 +67,57 @@ public class SpanUtil {
     tags.add(
         Trace.KeyValue.newBuilder()
             .setKey(LogMessage.ReservedField.SERVICE_NAME.fieldName)
-            .setVTypeValue(Trace.ValueType.STRING.getNumber())
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr(serviceName)
             .build());
 
     tags.add(
         Trace.KeyValue.newBuilder()
             .setKey("http_method")
-            .setVTypeValue(Trace.ValueType.STRING.getNumber())
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr("POST")
             .build());
 
     tags.add(
         Trace.KeyValue.newBuilder()
             .setKey("method")
-            .setVTypeValue(Trace.ValueType.STRING.getNumber())
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr("callbacks.flannel")
             .build());
 
     tags.add(
         Trace.KeyValue.newBuilder()
             .setKey("boolean")
-            .setVTypeValue(Trace.ValueType.BOOL.getNumber())
+            .setFieldType(Schema.SchemaFieldType.BOOLEAN)
             .setVBool(true)
             .build());
 
     tags.add(
         Trace.KeyValue.newBuilder()
             .setKey("int")
-            .setVTypeValue(Trace.ValueType.INT64.getNumber())
+            .setFieldType(Schema.SchemaFieldType.LONG)
             .setVInt64(1000)
-            .setVFloat64(1001.2)
             .build());
 
     tags.add(
         Trace.KeyValue.newBuilder()
             .setKey("float")
-            .setVTypeValue(Trace.ValueType.FLOAT64.getNumber())
+            .setFieldType(Schema.SchemaFieldType.DOUBLE)
             .setVFloat64(1001.2)
-            .setVInt64(1000)
             .build());
 
     tags.add(
         Trace.KeyValue.newBuilder()
             .setKey("binary")
-            .setVTypeValue(Trace.ValueType.BINARY.getNumber())
             .setVBinary(ByteString.copyFromUtf8(BINARY_TAG_VALUE))
+            .setFieldType(Schema.SchemaFieldType.BINARY)
             .setVStr("ignored")
             .build());
 
     tags.add(
         Trace.KeyValue.newBuilder()
             .setKey(LogMessage.ReservedField.TYPE.fieldName)
-            .setVTypeValue(Trace.ValueType.STRING.getNumber())
+            .setFieldType(Schema.SchemaFieldType.KEYWORD)
             .setVStr(msgType)
             .build());
 
@@ -152,43 +151,43 @@ public class SpanUtil {
                 Trace.KeyValue.newBuilder()
                     .setVStr(message)
                     .setKey("message")
-                    .setVType(Trace.ValueType.STRING)
+                    .setFieldType(Schema.SchemaFieldType.KEYWORD)
                     .build())
             .addTags(
                 Trace.KeyValue.newBuilder()
                     .setVInt32(i)
                     .setKey(TEST_SOURCE_INT_PROPERTY)
-                    .setVType(Trace.ValueType.INT32)
+                    .setFieldType(Schema.SchemaFieldType.INTEGER)
                     .build())
             .addTags(
                 Trace.KeyValue.newBuilder()
                     .setVInt64(i)
                     .setKey(TEST_SOURCE_LONG_PROPERTY)
-                    .setVType(Trace.ValueType.INT64)
+                    .setFieldType(Schema.SchemaFieldType.LONG)
                     .build())
             .addTags(
                 Trace.KeyValue.newBuilder()
                     .setVFloat32(i)
                     .setKey(TEST_SOURCE_FLOAT_PROPERTY)
-                    .setVType(Trace.ValueType.FLOAT32)
+                    .setFieldType(Schema.SchemaFieldType.FLOAT)
                     .build())
             .addTags(
                 Trace.KeyValue.newBuilder()
                     .setVFloat64(i)
                     .setKey(TEST_SOURCE_DOUBLE_PROPERTY)
-                    .setVType(Trace.ValueType.FLOAT64)
+                    .setFieldType(Schema.SchemaFieldType.DOUBLE)
                     .build())
             .addTags(
                 Trace.KeyValue.newBuilder()
                     .setVStr(String.format("String-%s", i))
                     .setKey(TEST_SOURCE_STRING_PROPERTY)
-                    .setVType(Trace.ValueType.STRING)
+                    .setFieldType(Schema.SchemaFieldType.KEYWORD)
                     .build())
             .addTags(
                 Trace.KeyValue.newBuilder()
                     .setVStr(TEST_DATASET_NAME)
                     .setKey(LogMessage.ReservedField.SERVICE_NAME.fieldName)
-                    .setVType(Trace.ValueType.STRING)
+                    .setFieldType(Schema.SchemaFieldType.KEYWORD)
                     .build())
             .build();
     for (Trace.KeyValue additionalTag : additionalTags) {

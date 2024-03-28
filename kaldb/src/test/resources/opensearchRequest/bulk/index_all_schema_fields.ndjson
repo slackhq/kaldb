@@ -1,0 +1,2 @@
+{ "index" : { "_index" : "test", "_id" : "1" } }
+{ "host" : "host1", "message" : "foo bar", "ip" : "0.0.0.0", "my_date" : "2014-09-01T12:00:00Z", "success" : true, "cost": 4.0, "amount" : 1.1, "amount_half_float" : 1.2, "value" : 42, "count" : 3, "count_scaled_long" : 80, "count_short" : 10, "bucket" : "20" }

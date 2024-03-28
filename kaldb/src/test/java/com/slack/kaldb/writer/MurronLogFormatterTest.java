@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.google.protobuf.ByteString;
 import com.slack.kaldb.logstore.LogMessage;
+import com.slack.kaldb.proto.schema.Schema;
 import com.slack.service.murron.Murron;
 import com.slack.service.murron.trace.Trace;
 import java.nio.charset.StandardCharsets;
@@ -19,23 +20,24 @@ public class MurronLogFormatterTest {
   public Object getTagValue(List<Trace.KeyValue> tags, String key) {
     for (Trace.KeyValue tag : tags) {
       if (tag.getKey().equals(key)) {
-        Trace.ValueType valueType = tag.getVType();
-        if (valueType.equals(Trace.ValueType.STRING)) {
+        Schema.SchemaFieldType schemaFieldType = tag.getFieldType();
+        if (schemaFieldType.equals(Schema.SchemaFieldType.STRING)
+            || schemaFieldType.equals(Schema.SchemaFieldType.KEYWORD)) {
           return tag.getVStr();
         }
-        if (valueType.equals(Trace.ValueType.INT32)) {
+        if (schemaFieldType.equals(Schema.SchemaFieldType.INTEGER)) {
           return tag.getVInt32();
         }
-        if (valueType.equals(Trace.ValueType.INT64)) {
+        if (schemaFieldType.equals(Schema.SchemaFieldType.LONG)) {
           return tag.getVInt64();
         }
-        if (valueType.equals(Trace.ValueType.FLOAT64)) {
+        if (schemaFieldType.equals(Schema.SchemaFieldType.DOUBLE)) {
           return tag.getVFloat64();
         }
-        if (valueType.equals(Trace.ValueType.BOOL)) {
+        if (schemaFieldType.equals(Schema.SchemaFieldType.BOOLEAN)) {
           return tag.getVBool();
         }
-        if (valueType.equals(Trace.ValueType.BINARY_VALUE)) {
+        if (schemaFieldType.equals(Schema.SchemaFieldType.BINARY)) {
           return tag.getVBinary();
         }
       }

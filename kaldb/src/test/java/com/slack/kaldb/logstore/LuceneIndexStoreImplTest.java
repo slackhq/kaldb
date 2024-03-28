@@ -27,6 +27,7 @@ import com.slack.kaldb.logstore.schema.SchemaAwareLogDocumentBuilderImpl;
 import com.slack.kaldb.logstore.search.LogIndexSearcherImpl;
 import com.slack.kaldb.logstore.search.SearchResult;
 import com.slack.kaldb.logstore.search.aggregations.DateHistogramAggBuilder;
+import com.slack.kaldb.proto.schema.Schema;
 import com.slack.kaldb.testlib.MessageUtil;
 import com.slack.kaldb.testlib.SpanUtil;
 import com.slack.kaldb.testlib.TemporaryLogStoreAndSearcherExtension;
@@ -87,25 +88,25 @@ public class LuceneIndexStoreImplTest {
                   Trace.KeyValue.newBuilder()
                       .setVStr("Test message")
                       .setKey("message")
-                      .setVType(Trace.ValueType.STRING)
+                      .setFieldType(Schema.SchemaFieldType.KEYWORD)
                       .build())
               .addTags(
                   Trace.KeyValue.newBuilder()
                       .setVStr("duplicate1")
                       .setKey("duplicateproperty")
-                      .setVType(Trace.ValueType.STRING)
+                      .setFieldType(Schema.SchemaFieldType.KEYWORD)
                       .build())
               .addTags(
                   Trace.KeyValue.newBuilder()
                       .setVStr("value1")
                       .setKey("nested.key1")
-                      .setVType(Trace.ValueType.STRING)
+                      .setFieldType(Schema.SchemaFieldType.KEYWORD)
                       .build())
               .addTags(
                   Trace.KeyValue.newBuilder()
                       .setVStr("2")
                       .setKey("nested.duplicateproperty")
-                      .setVType(Trace.ValueType.STRING)
+                      .setFieldType(Schema.SchemaFieldType.KEYWORD)
                       .build())
               .build();
       logStore.logStore.addMessage(span);
@@ -177,7 +178,7 @@ public class LuceneIndexStoreImplTest {
           Trace.KeyValue.newBuilder()
               .setKey(ReservedField.HOSTNAME.fieldName)
               .setVInt32(1)
-              .setVType(Trace.ValueType.INT32)
+              .setFieldType(Schema.SchemaFieldType.INTEGER)
               .build();
       logStore.logStore.addMessage(
           SpanUtil.makeSpan(100, "test", Instant.now(), List.of(wrongField)));
@@ -209,7 +210,7 @@ public class LuceneIndexStoreImplTest {
       Trace.KeyValue wrongField =
           Trace.KeyValue.newBuilder()
               .setKey(ReservedField.HOSTNAME.fieldName)
-              .setVType(Trace.ValueType.INT32)
+              .setFieldType(Schema.SchemaFieldType.INTEGER)
               .setVInt32(20000)
               .build();
 
