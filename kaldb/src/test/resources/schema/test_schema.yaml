@@ -3,6 +3,10 @@ fields:
     type: KEYWORD
   message:
     type: TEXT
+    fields:
+      keyword:
+        type: KEYWORD
+        ignore_above: 256
   ip:
     type: IP
   my_date:

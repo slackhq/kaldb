@@ -1,5 +1,7 @@
 package com.slack.kaldb.writer;
 
+import static com.slack.kaldb.metadata.schema.FieldType.KEYWORD;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.slack.kaldb.logstore.LogMessage;
@@ -88,79 +90,98 @@ public class SpanFormatter {
     return spanBuilder.build();
   }
 
-  public static Trace.KeyValue convertKVtoProto(
-      String key, Object value, Schema.IngestSchema schema) {
-    if (schema.containsFields(key)) {
-      Trace.KeyValue.Builder tagBuilder = Trace.KeyValue.newBuilder();
-      tagBuilder.setKey(key);
-      try {
-        switch (schema.getFieldsMap().get(key).getType()) {
-          case KEYWORD -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.KEYWORD);
-            tagBuilder.setVStr(value.toString());
-          }
-          case TEXT -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.TEXT);
-            tagBuilder.setVStr(value.toString());
-          }
-          case IP -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.IP);
-            tagBuilder.setVStr(value.toString());
-          }
-          case DATE -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.DATE);
-            tagBuilder.setVInt64(Instant.parse(value.toString()).toEpochMilli());
-          }
-          case BOOLEAN -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.BOOLEAN);
-            tagBuilder.setVBool(Boolean.parseBoolean(value.toString()));
-          }
-          case DOUBLE -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.DOUBLE);
-            tagBuilder.setVFloat64(Double.parseDouble(value.toString()));
-          }
-          case FLOAT -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.FLOAT);
-            tagBuilder.setVFloat32(Float.parseFloat(value.toString()));
-          }
-          case HALF_FLOAT -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.HALF_FLOAT);
-            tagBuilder.setVFloat32(Float.parseFloat(value.toString()));
-          }
-          case INTEGER -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.INTEGER);
-            tagBuilder.setVInt32(Integer.parseInt(value.toString()));
-          }
-          case LONG -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.LONG);
-            tagBuilder.setVInt64(Long.parseLong(value.toString()));
-          }
-          case SCALED_LONG -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.SCALED_LONG);
-            tagBuilder.setVInt64(Long.parseLong(value.toString()));
-          }
-          case SHORT -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.SHORT);
-            tagBuilder.setVInt32(Integer.parseInt(value.toString()));
-          }
-          case BYTE -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.BYTE);
-            tagBuilder.setVInt32(Integer.parseInt(value.toString()));
-          }
-          case BINARY -> {
-            tagBuilder.setFieldType(Schema.SchemaFieldType.BINARY);
-            tagBuilder.setVBinary(ByteString.copyFrom(value.toString().getBytes()));
-          }
+  public static Trace.KeyValue makeTraceKV(String key, Object value, Schema.SchemaFieldType type) {
+    Trace.KeyValue.Builder tagBuilder = Trace.KeyValue.newBuilder();
+    tagBuilder.setKey(key);
+    try {
+      switch (type) {
+        case KEYWORD -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.KEYWORD);
+          tagBuilder.setVStr(value.toString());
         }
-        return tagBuilder.build();
-      } catch (Exception e) {
-        tagBuilder.setKey(STR."failed_\{key}");
-        tagBuilder.setFieldType(Schema.SchemaFieldType.KEYWORD);
-        tagBuilder.setVStr(value.toString());
-        return tagBuilder.build();
+        case TEXT -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.TEXT);
+          tagBuilder.setVStr(value.toString());
+        }
+        case IP -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.IP);
+          tagBuilder.setVStr(value.toString());
+        }
+        case DATE -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.DATE);
+          tagBuilder.setVInt64(Instant.parse(value.toString()).toEpochMilli());
+        }
+        case BOOLEAN -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.BOOLEAN);
+          tagBuilder.setVBool(Boolean.parseBoolean(value.toString()));
+        }
+        case DOUBLE -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.DOUBLE);
+          tagBuilder.setVFloat64(Double.parseDouble(value.toString()));
+        }
+        case FLOAT -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.FLOAT);
+          tagBuilder.setVFloat32(Float.parseFloat(value.toString()));
+        }
+        case HALF_FLOAT -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.HALF_FLOAT);
+          tagBuilder.setVFloat32(Float.parseFloat(value.toString()));
+        }
+        case INTEGER -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.INTEGER);
+          tagBuilder.setVInt32(Integer.parseInt(value.toString()));
+        }
+        case LONG -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.LONG);
+          tagBuilder.setVInt64(Long.parseLong(value.toString()));
+        }
+        case SCALED_LONG -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.SCALED_LONG);
+          tagBuilder.setVInt64(Long.parseLong(value.toString()));
+        }
+        case SHORT -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.SHORT);
+          tagBuilder.setVInt32(Integer.parseInt(value.toString()));
+        }
+        case BYTE -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.BYTE);
+          tagBuilder.setVInt32(Integer.parseInt(value.toString()));
+        }
+        case BINARY -> {
+          tagBuilder.setFieldType(Schema.SchemaFieldType.BINARY);
+          tagBuilder.setVBinary(ByteString.copyFrom(value.toString().getBytes()));
+        }
       }
+      return tagBuilder.build();
+    } catch (Exception e) {
+      tagBuilder.setKey(STR."failed_\{key}");
+      tagBuilder.setFieldType(Schema.SchemaFieldType.KEYWORD);
+      tagBuilder.setVStr(value.toString());
+      return tagBuilder.build();
+    }
+  }
+
+  public static List<Trace.KeyValue> convertKVtoProto(
+      String key, Object value, Schema.IngestSchema schema) {
+    List<Trace.KeyValue> tags = new ArrayList<>();
+    if (schema.containsFields(key)) {
+      Schema.SchemaField schemaFieldDef = schema.getFieldsMap().get(key);
+      tags.add(makeTraceKV(key, value, schemaFieldDef.getType()));
+      for (Map.Entry<String, Schema.SchemaField> additionalField :
+          schemaFieldDef.getFieldsMap().entrySet()) {
+        if (additionalField.getValue().getIgnoreAbove() > 0
+            && value.toString().length() < additionalField.getValue().getIgnoreAbove()) {
+          Trace.KeyValue additionalKV =
+              makeTraceKV(
+                  STR."\{key}.\{additionalField.getKey()}",
+                  value,
+                  additionalField.getValue().getType());
+          tags.add(additionalKV);
+        }
+      }
+      return tags;
     } else {
-      return SpanFormatter.convertKVtoProto(key, value);
+      return List.of(SpanFormatter.convertKVtoProto(key, value));
     }
   }
 

@@ -127,129 +127,129 @@ public class SpanFormatterWithSchemaTest {
 
   @Test
   public void testSimpleSchema() {
-    Trace.KeyValue kv = SpanFormatter.convertKVtoProto("host", "host1", schema);
+    Trace.KeyValue kv = SpanFormatter.convertKVtoProto("host", "host1", schema).get(0);
     assertThat(kv.getVStr()).isEqualTo("host1");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
 
-    kv = SpanFormatter.convertKVtoProto("message", "my message", schema);
+    kv = SpanFormatter.convertKVtoProto("message", "my message", schema).get(0);
     assertThat(kv.getVStr()).isEqualTo("my message");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.TEXT);
 
-    kv = SpanFormatter.convertKVtoProto("ip", "8.8.8.8", schema);
+    kv = SpanFormatter.convertKVtoProto("ip", "8.8.8.8", schema).get(0);
     assertThat(kv.getVStr()).isEqualTo("8.8.8.8");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.IP);
 
     String myTimestamp = "2021-01-01T00:00:00Z";
-    kv = SpanFormatter.convertKVtoProto("myTimestamp", myTimestamp, schema);
+    kv = SpanFormatter.convertKVtoProto("myTimestamp", myTimestamp, schema).get(0);
     assertThat(kv.getVInt64()).isEqualTo(Instant.parse(myTimestamp).toEpochMilli());
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.DATE);
 
-    kv = SpanFormatter.convertKVtoProto("success", "true", schema);
+    kv = SpanFormatter.convertKVtoProto("success", "true", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.BOOLEAN);
     assertThat(kv.getVBool()).isEqualTo(true);
 
-    kv = SpanFormatter.convertKVtoProto("success", true, schema);
+    kv = SpanFormatter.convertKVtoProto("success", true, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.BOOLEAN);
     assertThat(kv.getVBool()).isEqualTo(true);
 
-    kv = SpanFormatter.convertKVtoProto("cost", "10.0", schema);
+    kv = SpanFormatter.convertKVtoProto("cost", "10.0", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.DOUBLE);
     assertThat(kv.getVFloat64()).isEqualTo(10.0);
 
-    kv = SpanFormatter.convertKVtoProto("cost", 10.0, schema);
+    kv = SpanFormatter.convertKVtoProto("cost", 10.0, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.DOUBLE);
     assertThat(kv.getVFloat64()).isEqualTo(10.0);
 
-    kv = SpanFormatter.convertKVtoProto("amount", "10.0", schema);
+    kv = SpanFormatter.convertKVtoProto("amount", "10.0", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.FLOAT);
     assertThat(kv.getVFloat32()).isEqualTo(10.0f);
 
-    kv = SpanFormatter.convertKVtoProto("amount", 10.0, schema);
+    kv = SpanFormatter.convertKVtoProto("amount", 10.0, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.FLOAT);
     assertThat(kv.getVFloat32()).isEqualTo(10.0f);
 
-    kv = SpanFormatter.convertKVtoProto("amount_half_float", "10.0", schema);
+    kv = SpanFormatter.convertKVtoProto("amount_half_float", "10.0", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.HALF_FLOAT);
     assertThat(kv.getVFloat32()).isEqualTo(10.0f);
 
-    kv = SpanFormatter.convertKVtoProto("amount_half_float", 10.0, schema);
+    kv = SpanFormatter.convertKVtoProto("amount_half_float", 10.0, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.HALF_FLOAT);
     assertThat(kv.getVFloat32()).isEqualTo(10.0f);
 
-    kv = SpanFormatter.convertKVtoProto("value", "10", schema);
+    kv = SpanFormatter.convertKVtoProto("value", "10", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.INTEGER);
     assertThat(kv.getVInt32()).isEqualTo(10);
 
-    kv = SpanFormatter.convertKVtoProto("value", 10, schema);
+    kv = SpanFormatter.convertKVtoProto("value", 10, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.INTEGER);
     assertThat(kv.getVInt32()).isEqualTo(10);
 
-    kv = SpanFormatter.convertKVtoProto("count", "10", schema);
+    kv = SpanFormatter.convertKVtoProto("count", "10", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.LONG);
     assertThat(kv.getVInt64()).isEqualTo(10L);
 
-    kv = SpanFormatter.convertKVtoProto("count", 10, schema);
+    kv = SpanFormatter.convertKVtoProto("count", 10, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.LONG);
     assertThat(kv.getVInt64()).isEqualTo(10L);
 
-    kv = SpanFormatter.convertKVtoProto("count_scaled_long", "10", schema);
+    kv = SpanFormatter.convertKVtoProto("count_scaled_long", "10", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.SCALED_LONG);
     assertThat(kv.getVInt64()).isEqualTo(10);
 
-    kv = SpanFormatter.convertKVtoProto("count_scaled_long", 10, schema);
+    kv = SpanFormatter.convertKVtoProto("count_scaled_long", 10, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.SCALED_LONG);
     assertThat(kv.getVInt64()).isEqualTo(10L);
 
-    kv = SpanFormatter.convertKVtoProto("count_short", "10", schema);
+    kv = SpanFormatter.convertKVtoProto("count_short", "10", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.SHORT);
     assertThat(kv.getVInt32()).isEqualTo(10L);
 
-    kv = SpanFormatter.convertKVtoProto("count_short", 10, schema);
+    kv = SpanFormatter.convertKVtoProto("count_short", 10, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.SHORT);
     assertThat(kv.getVInt32()).isEqualTo(10);
 
-    kv = SpanFormatter.convertKVtoProto("bucket", "e30=", schema);
+    kv = SpanFormatter.convertKVtoProto("bucket", "e30=", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.BINARY);
     assertThat(kv.getVBinary().toStringUtf8()).isEqualTo("e30=");
   }
 
   @Test
   public void testKeyValueWithWrongValues() {
-    Trace.KeyValue kv = SpanFormatter.convertKVtoProto("success", "notBoolean", schema);
+    Trace.KeyValue kv = SpanFormatter.convertKVtoProto("success", "notBoolean", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.BOOLEAN);
     assertThat(kv.getVBool()).isEqualTo(false);
 
-    kv = SpanFormatter.convertKVtoProto("cost", "hello", schema);
+    kv = SpanFormatter.convertKVtoProto("cost", "hello", schema).get(0);
     assertThat(kv.getKey()).isEqualTo("failed_cost");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("hello");
 
-    kv = SpanFormatter.convertKVtoProto("amount", "hello", schema);
+    kv = SpanFormatter.convertKVtoProto("amount", "hello", schema).get(0);
     assertThat(kv.getKey()).isEqualTo("failed_amount");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("hello");
 
-    kv = SpanFormatter.convertKVtoProto("amount_half_float", "half_float_value", schema);
+    kv = SpanFormatter.convertKVtoProto("amount_half_float", "half_float_value", schema).get(0);
     assertThat(kv.getKey()).isEqualTo("failed_amount_half_float");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("half_float_value");
 
-    kv = SpanFormatter.convertKVtoProto("value", "int_value", schema);
+    kv = SpanFormatter.convertKVtoProto("value", "int_value", schema).get(0);
     assertThat(kv.getKey()).isEqualTo("failed_value");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("int_value");
 
-    kv = SpanFormatter.convertKVtoProto("count", "long_value", schema);
+    kv = SpanFormatter.convertKVtoProto("count", "long_value", schema).get(0);
     assertThat(kv.getKey()).isEqualTo("failed_count");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("long_value");
 
-    kv = SpanFormatter.convertKVtoProto("count_scaled_long", "scaled_long_val", schema);
+    kv = SpanFormatter.convertKVtoProto("count_scaled_long", "scaled_long_val", schema).get(0);
     assertThat(kv.getKey()).isEqualTo("failed_count_scaled_long");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("scaled_long_val");
 
-    kv = SpanFormatter.convertKVtoProto("count_short", "my_short-Val", schema);
+    kv = SpanFormatter.convertKVtoProto("count_short", "my_short-Val", schema).get(0);
     assertThat(kv.getKey()).isEqualTo("failed_count_short");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("my_short-Val");
@@ -259,46 +259,46 @@ public class SpanFormatterWithSchemaTest {
   public void testSimpleWithoutSchema() {
 
     Schema.IngestSchema schema = Schema.IngestSchema.getDefaultInstance();
-    Trace.KeyValue kv = SpanFormatter.convertKVtoProto("host", "host1", schema);
+    Trace.KeyValue kv = SpanFormatter.convertKVtoProto("host", "host1", schema).get(0);
     assertThat(kv.getVStr()).isEqualTo("host1");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
 
-    kv = SpanFormatter.convertKVtoProto("ip", "8.8.8.8", schema);
+    kv = SpanFormatter.convertKVtoProto("ip", "8.8.8.8", schema).get(0);
     assertThat(kv.getVStr()).isEqualTo("8.8.8.8");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
 
-    kv = SpanFormatter.convertKVtoProto("myTimestamp", "2021-01-01T00:00:00Z", schema);
+    kv = SpanFormatter.convertKVtoProto("myTimestamp", "2021-01-01T00:00:00Z", schema).get(0);
     assertThat(kv.getVStr()).isEqualTo("2021-01-01T00:00:00Z");
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
 
-    kv = SpanFormatter.convertKVtoProto("success", "true", schema);
+    kv = SpanFormatter.convertKVtoProto("success", "true", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("true");
 
-    kv = SpanFormatter.convertKVtoProto("success", true, schema);
+    kv = SpanFormatter.convertKVtoProto("success", true, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.BOOLEAN);
     assertThat(kv.getVBool()).isEqualTo(true);
 
-    kv = SpanFormatter.convertKVtoProto("cost", "10.0", schema);
+    kv = SpanFormatter.convertKVtoProto("cost", "10.0", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("10.0");
 
-    kv = SpanFormatter.convertKVtoProto("amount", 10.0f, schema);
+    kv = SpanFormatter.convertKVtoProto("amount", 10.0f, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.FLOAT);
     assertThat(kv.getVFloat32()).isEqualTo(10.0f);
 
-    kv = SpanFormatter.convertKVtoProto("cost", 10.0, schema);
+    kv = SpanFormatter.convertKVtoProto("cost", 10.0, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.DOUBLE);
     assertThat(kv.getVFloat64()).isEqualTo(10.0);
 
-    kv = SpanFormatter.convertKVtoProto("value", 10, schema);
+    kv = SpanFormatter.convertKVtoProto("value", 10, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.INTEGER);
 
-    kv = SpanFormatter.convertKVtoProto("count", 10L, schema);
+    kv = SpanFormatter.convertKVtoProto("count", 10L, schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.LONG);
     assertThat(kv.getVInt64()).isEqualTo(10L);
 
-    kv = SpanFormatter.convertKVtoProto("bucket", "e30=", schema);
+    kv = SpanFormatter.convertKVtoProto("bucket", "e30=", schema).get(0);
     assertThat(kv.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
     assertThat(kv.getVStr()).isEqualTo("e30=");
   }
@@ -345,6 +345,7 @@ public class SpanFormatterWithSchemaTest {
     final File schemaFile =
         new File(getClass().getClassLoader().getResource("schema/test_schema.yaml").getFile());
     Schema.IngestSchema schema = SchemaUtil.parseSchema(schemaFile.toPath());
+    assertThat(schema.getFieldsMap().size()).isEqualTo(13);
 
     byte[] rawRequest = getIndexRequestBytes("index_all_schema_fields");
     List<IndexRequest> indexRequests = BulkApiRequestParser.parseBulkRequest(rawRequest);
@@ -352,7 +353,7 @@ public class SpanFormatterWithSchemaTest {
     IngestDocument ingestDocument = convertRequestToDocument(indexRequests.get(0));
 
     Trace.Span span = fromIngestDocument(ingestDocument, schema);
-    assertThat(span.getTagsCount()).isEqualTo(14);
+    assertThat(span.getTagsCount()).isEqualTo(15);
     Map<String, Trace.KeyValue> tags =
         span.getTagsList().stream()
             .map(kv -> Map.entry(kv.getKey(), kv))
@@ -373,6 +374,7 @@ public class SpanFormatterWithSchemaTest {
     assertThat(tags.get("value").getVInt32()).isEqualTo(42);
     assertThat(tags.get("service_name").getVStr()).isEqualTo("test");
     assertThat(tags.get("message").getVStr()).isEqualTo("foo bar");
+    assertThat(tags.get("message.keyword").getVStr()).isEqualTo("foo bar");
 
     SchemaAwareLogDocumentBuilderImpl dropFieldBuilder =
         build(
@@ -381,104 +383,101 @@ public class SpanFormatterWithSchemaTest {
     // message is a tag, but is a TEXT field in schema, so it is indexed and not doc values
     // 13 tags X 2(DV and indexed) + (message,_id,_timesinceepoch,type,_index) x2 + _source + _all
 
-    assertThat(luceneDocument.getFields().size()).isEqualTo(37);
+    assertThat(luceneDocument.getFields().size()).isEqualTo(39);
 
     for (Map.Entry<String, Trace.KeyValue> keyAndTag : tags.entrySet()) {
       String key = keyAndTag.getKey();
       Trace.KeyValue tag = keyAndTag.getValue();
-      if (key.equals("message")) {
 
-      } else {
-        // Purposely against FieldType to ensure that conversion also works as expected
-        FieldType fieldType = FieldType.valueOf(tag.getFieldType().name());
-        // list since same field will have two entries - indexed and docvalues
-        Arrays.asList(luceneDocument.getFields(key))
-            .forEach(
-                field -> {
-                  if (fieldType == FieldType.TEXT) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.TEXT);
-                    assertThat(field.stringValue()).isEqualTo(tag.getVStr());
-                  } else if (fieldType == FieldType.KEYWORD) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
-                    if (field instanceof SortedDocValuesField) {
-                      assertThat(field.binaryValue().utf8ToString()).isNotNull();
-                    } else {
-                      assertThat(field.stringValue()).isEqualTo(tag.getVStr());
-                    }
-                  } else if (fieldType == FieldType.BOOLEAN) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.BOOLEAN);
-
-                    if (field instanceof SortedNumericDocValuesField) {
-                      assertThat(field.numericValue()).isEqualTo(1L);
-                    } else {
-                      assertThat(field.binaryValue().utf8ToString()).isEqualTo("T");
-                    }
-                  } else if (fieldType == FieldType.DATE) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.DATE);
-                    assertThat(field.numericValue().longValue()).isEqualTo(tag.getVInt64());
-                  } else if (fieldType == FieldType.DOUBLE) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.DOUBLE);
-                    if (field instanceof DoubleDocValuesField) {
-                      // reverse of Double.doubleToRawLongBits(value)
-                      assertThat(Double.longBitsToDouble(field.numericValue().longValue()))
-                          .isEqualTo(tag.getVFloat64());
-                    } else {
-                      assertThat(field.numericValue().doubleValue()).isEqualTo(tag.getVFloat64());
-                    }
-                  } else if (fieldType == FieldType.FLOAT) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.FLOAT);
-                    if (field instanceof FloatDocValuesField) {
-                      // reverse of Float.floatToRawIntBits(value)
-                      assertThat(Float.intBitsToFloat(field.numericValue().intValue()))
-                          .isEqualTo(tag.getVFloat32());
-                    } else {
-                      assertThat(field.numericValue().floatValue()).isEqualTo(tag.getVFloat32());
-                    }
-                  } else if (fieldType == FieldType.INTEGER) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.INTEGER);
-                    assertThat(field.numericValue().intValue()).isEqualTo(tag.getVInt32());
-                  } else if (fieldType == FieldType.LONG) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.LONG);
-                    assertThat(field.numericValue().longValue()).isEqualTo(tag.getVInt64());
-                  } else if (fieldType == FieldType.HALF_FLOAT) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.HALF_FLOAT);
-                    if (field instanceof HalfFloatPoint) {
-                      assertThat(Math.abs(field.numericValue().floatValue() - tag.getVFloat32()))
-                          .isLessThan(0.001F);
-                    } else {
-                      assertThat(
-                              Math.abs(
-                                  HalfFloatPoint.sortableShortToHalfFloat(
-                                          field.numericValue().shortValue())
-                                      - tag.getVFloat32()))
-                          .isLessThan(0.001F);
-                    }
-                  } else if (fieldType == FieldType.SCALED_LONG) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.SCALED_LONG);
-                    assertThat(field.numericValue().longValue()).isEqualTo(tag.getVInt64());
-                  } else if (fieldType == FieldType.SHORT) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.SHORT);
-                    assertThat(field.numericValue().intValue()).isEqualTo(tag.getVInt32());
-                  } else if (fieldType == FieldType.BINARY) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.BINARY);
-                    assertThat(field.binaryValue().utf8ToString()).isEqualTo(tag.getVStr());
-                  } else if (fieldType == FieldType.IP) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.IP);
-                    if (field instanceof SortedDocValuesField) {
-                      assertThat(InetAddressPoint.decode(field.binaryValue().bytes).getHostName())
-                          .isEqualTo(tag.getVStr());
-                    } else {
-                      assertThat(InetAddressPoint.decode(field.binaryValue().bytes).getHostName())
-                          .isEqualTo(tag.getVStr());
-                    }
-                  } else if (fieldType == FieldType.BYTE) {
-                    assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.BYTE);
-                    assertThat(field.numericValue().byteValue()).isEqualTo((byte) tag.getVInt32());
+      // Purposely against FieldType to ensure that conversion also works as expected
+      FieldType fieldType = FieldType.valueOf(tag.getFieldType().name());
+      // list since same field will have two entries - indexed and docvalues
+      Arrays.asList(luceneDocument.getFields(key))
+          .forEach(
+              field -> {
+                if (fieldType == FieldType.TEXT) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.TEXT);
+                  assertThat(field.stringValue()).isEqualTo(tag.getVStr());
+                } else if (fieldType == FieldType.KEYWORD) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.KEYWORD);
+                  if (field instanceof SortedDocValuesField) {
+                    assertThat(field.binaryValue().utf8ToString()).isNotNull();
                   } else {
-                    fail("fieldType not defined for field: " + tag);
+                    assertThat(field.stringValue()).isEqualTo(tag.getVStr());
                   }
-                });
-      }
+                } else if (fieldType == FieldType.BOOLEAN) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.BOOLEAN);
+
+                  if (field instanceof SortedNumericDocValuesField) {
+                    assertThat(field.numericValue()).isEqualTo(1L);
+                  } else {
+                    assertThat(field.binaryValue().utf8ToString()).isEqualTo("T");
+                  }
+                } else if (fieldType == FieldType.DATE) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.DATE);
+                  assertThat(field.numericValue().longValue()).isEqualTo(tag.getVInt64());
+                } else if (fieldType == FieldType.DOUBLE) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.DOUBLE);
+                  if (field instanceof DoubleDocValuesField) {
+                    // reverse of Double.doubleToRawLongBits(value)
+                    assertThat(Double.longBitsToDouble(field.numericValue().longValue()))
+                        .isEqualTo(tag.getVFloat64());
+                  } else {
+                    assertThat(field.numericValue().doubleValue()).isEqualTo(tag.getVFloat64());
+                  }
+                } else if (fieldType == FieldType.FLOAT) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.FLOAT);
+                  if (field instanceof FloatDocValuesField) {
+                    // reverse of Float.floatToRawIntBits(value)
+                    assertThat(Float.intBitsToFloat(field.numericValue().intValue()))
+                        .isEqualTo(tag.getVFloat32());
+                  } else {
+                    assertThat(field.numericValue().floatValue()).isEqualTo(tag.getVFloat32());
+                  }
+                } else if (fieldType == FieldType.INTEGER) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.INTEGER);
+                  assertThat(field.numericValue().intValue()).isEqualTo(tag.getVInt32());
+                } else if (fieldType == FieldType.LONG) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.LONG);
+                  assertThat(field.numericValue().longValue()).isEqualTo(tag.getVInt64());
+                } else if (fieldType == FieldType.HALF_FLOAT) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.HALF_FLOAT);
+                  if (field instanceof HalfFloatPoint) {
+                    assertThat(Math.abs(field.numericValue().floatValue() - tag.getVFloat32()))
+                        .isLessThan(0.001F);
+                  } else {
+                    assertThat(
+                            Math.abs(
+                                HalfFloatPoint.sortableShortToHalfFloat(
+                                        field.numericValue().shortValue())
+                                    - tag.getVFloat32()))
+                        .isLessThan(0.001F);
+                  }
+                } else if (fieldType == FieldType.SCALED_LONG) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.SCALED_LONG);
+                  assertThat(field.numericValue().longValue()).isEqualTo(tag.getVInt64());
+                } else if (fieldType == FieldType.SHORT) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.SHORT);
+                  assertThat(field.numericValue().intValue()).isEqualTo(tag.getVInt32());
+                } else if (fieldType == FieldType.BINARY) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.BINARY);
+                  assertThat(field.binaryValue().utf8ToString()).isEqualTo(tag.getVStr());
+                } else if (fieldType == FieldType.IP) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.IP);
+                  if (field instanceof SortedDocValuesField) {
+                    assertThat(InetAddressPoint.decode(field.binaryValue().bytes).getHostName())
+                        .isEqualTo(tag.getVStr());
+                  } else {
+                    assertThat(InetAddressPoint.decode(field.binaryValue().bytes).getHostName())
+                        .isEqualTo(tag.getVStr());
+                  }
+                } else if (fieldType == FieldType.BYTE) {
+                  assertThat(tag.getFieldType()).isEqualTo(Schema.SchemaFieldType.BYTE);
+                  assertThat(field.numericValue().byteValue()).isEqualTo((byte) tag.getVInt32());
+                } else {
+                  fail("fieldType not defined for field: " + tag);
+                }
+              });
     }
   }
 
